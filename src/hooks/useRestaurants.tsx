@@ -21,17 +21,22 @@ export const useRestaurants = () => {
   const { profile } = useProfile();
 
   useEffect(() => {
+    console.log('useRestaurants useEffect triggered', { user: !!user, profile: !!profile });
     if (user && profile) {
+      console.log('Fetching restaurants...');
       fetchRestaurants();
     } else {
+      console.log('No user or profile, setting empty restaurants');
       setRestaurants([]);
       setLoading(false);
     }
   }, [user, profile]);
 
   const fetchRestaurants = async () => {
+    console.log('fetchRestaurants called', { user: !!user, profile: !!profile });
     if (!user || !profile) return;
 
+    console.log('Starting restaurant fetch...');
     try {
       let query = supabase
         .from('restaurants')
@@ -47,6 +52,7 @@ export const useRestaurants = () => {
 
       // Role-based filtering happens at the database level via RLS
       const { data, error } = await query;
+      console.log('Restaurant query executed', { data, error });
 
       if (error) throw error;
       // Transform the data to match our type expectations
@@ -55,6 +61,7 @@ export const useRestaurants = () => {
         creator: Array.isArray(restaurant.creator) ? restaurant.creator[0] : restaurant.creator
       })) || [];
       
+      console.log('Transformed restaurant data', transformedData);
       setRestaurants(transformedData);
     } catch (error) {
       console.error('Error fetching restaurants:', error);

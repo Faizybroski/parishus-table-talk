@@ -40,7 +40,7 @@ const CreateEvent = () => {
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { restaurants } = useRestaurants();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   
   const navigate = useNavigate();
 
@@ -195,8 +195,8 @@ const CreateEvent = () => {
   const isFormValid = formData.name && formData.description && formData.date && 
                       formData.time && formData.location_name;
 
-  // Show loading while authentication or profile is loading
-  if (authLoading || profileLoading) {
+  // Show loading while authentication, profile, or restaurants are loading
+  if (authLoading || profileLoading || restaurantsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -207,14 +207,16 @@ const CreateEvent = () => {
     );
   }
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated  
   if (!user) {
+    console.log('No user, redirecting to auth');
     navigate('/auth');
     return null;
   }
 
   // Show error if no profile
   if (!profile) {
+    console.log('No profile found');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
