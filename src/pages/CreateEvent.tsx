@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useRestaurants } from '@/hooks/useRestaurants';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,8 @@ import { useNavigate } from 'react-router-dom';
 const CreateEvent = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -39,9 +40,35 @@ const CreateEvent = () => {
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   
   const navigate = useNavigate();
+
+  // Fetch restaurants directly
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setRestaurantsLoading(true);
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error('Error fetching restaurants:', error);
+          setRestaurants([]);
+        } else {
+          setRestaurants(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+        setRestaurants([]);
+      } finally {
+        setRestaurantsLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -313,11 +340,17 @@ const CreateEvent = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                      {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
-                        <SelectItem key={restaurant.id} value={restaurant.id}>
-                          {restaurant.name} - {restaurant.city}, {restaurant.country}
-                        </SelectItem>
-                      )) : null}
+                      {!restaurantsLoading && restaurants.length > 0 ? (
+                        restaurants.map((restaurant) => (
+                          <SelectItem key={restaurant.id} value={restaurant.id}>
+                            {restaurant.name} - {restaurant.city}, {restaurant.country}
+                          </SelectItem>
+                        ))
+                      ) : restaurantsLoading ? (
+                        <SelectItem value="" disabled>Loading restaurants...</SelectItem>
+                      ) : (
+                        <SelectItem value="" disabled>No restaurants available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
