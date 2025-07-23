@@ -24,8 +24,6 @@ const CreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
-    restaurant_id: '',
-    
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -36,40 +34,11 @@ const CreateEvent = () => {
     is_mystery_dinner: false
   });
   const [newTag, setNewTag] = useState('');
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [restaurantsLoading, setRestaurantsLoading] = useState(false);
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user && profile) {
-      fetchRestaurants();
-    }
-  }, [user, profile]);
-
-  const fetchRestaurants = async () => {
-    if (!user || !profile) return;
-    
-    setRestaurantsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      
-      setRestaurants(data || []);
-    } catch (error) {
-      console.error('Error fetching restaurants:', error);
-      setRestaurants([]);
-    } finally {
-      setRestaurantsLoading(false);
-    }
-  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -160,7 +129,7 @@ const CreateEvent = () => {
           date_time: dateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
-          restaurant_id: formData.restaurant_id || null,
+          
           max_attendees: formData.max_attendees,
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
@@ -222,8 +191,8 @@ const CreateEvent = () => {
   const isFormValid = formData.name && formData.description && formData.date && 
                       formData.time && formData.location_name;
 
-  // Show loading while authentication, profile, or restaurants are loading
-  if (authLoading || profileLoading || restaurantsLoading) {
+  // Show loading while authentication or profile is loading
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -333,48 +302,29 @@ const CreateEvent = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant_id">Restaurant (Optional)</Label>
-                    <Select value={formData.restaurant_id} onValueChange={(value) => handleInputChange('restaurant_id', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a restaurant or leave blank for custom venue" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                        {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
-                          <SelectItem key={restaurant.id} value={restaurant.id}>
-                            {restaurant.name} - {restaurant.city}, {restaurant.country}
-                          </SelectItem>
-                        )) : null}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location_name">Venue Name *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="location_name"
-                        placeholder="e.g., The Garden Cafe"
-                        value={formData.location_name}
-                        onChange={(e) => handleInputChange('location_name', e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location_address">Address</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="location_name">Venue Name *</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="location_address"
-                      placeholder="123 Main St, City, State"
-                      value={formData.location_address}
-                      onChange={(e) => handleInputChange('location_address', e.target.value)}
+                      id="location_name"
+                      placeholder="e.g., The Garden Cafe"
+                      value={formData.location_name}
+                      onChange={(e) => handleInputChange('location_name', e.target.value)}
+                      className="pl-10"
+                      required
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location_address">Address</Label>
+                  <Input
+                    id="location_address"
+                    placeholder="123 Main St, City, State"
+                    value={formData.location_address}
+                    onChange={(e) => handleInputChange('location_address', e.target.value)}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
