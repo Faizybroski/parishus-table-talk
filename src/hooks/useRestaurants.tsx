@@ -65,14 +65,14 @@ export const useRestaurants = () => {
   };
 
   const createRestaurant = async (restaurant: Omit<RestaurantInsert, 'creator_id'>) => {
-    if (!user) return { data: null, error: new Error('User not authenticated') };
+    if (!user || !profile) return { data: null, error: new Error('User not authenticated') };
 
     try {
       const { data, error } = await supabase
         .from('restaurants')
         .insert({
           ...restaurant,
-          creator_id: user.id
+          creator_id: profile.id  // Use profile.id instead of user.id
         })
         .select(`
           *,
@@ -145,12 +145,12 @@ export const useRestaurants = () => {
 
   const canEdit = (restaurant: Restaurant) => {
     if (!profile) return false;
-    return profile.role === 'superadmin' || profile.role === 'admin' || restaurant.creator_id === user?.id;
+    return profile.role === 'superadmin' || profile.role === 'admin' || restaurant.creator_id === profile.id;
   };
 
   const canDelete = (restaurant: Restaurant) => {
     if (!profile) return false;
-    return profile.role === 'superadmin' || profile.role === 'admin' || restaurant.creator_id === user?.id;
+    return profile.role === 'superadmin' || profile.role === 'admin' || restaurant.creator_id === profile.id;
   };
 
   return {
