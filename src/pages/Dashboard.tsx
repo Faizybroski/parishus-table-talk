@@ -13,6 +13,7 @@ import {
   Search
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import EventsCarousel from '@/components/events/EventsCarousel';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -87,46 +88,8 @@ const Dashboard = () => {
             </Button>
           </div>
 
-          {/* Mystery Dinner Card */}
-          <Card className="shadow-card border-border bg-gradient-mystery">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white">Next Mystery Dinner</CardTitle>
-                <Badge className="bg-white/20 text-white">
-                  {nextMysteryDinner.seatsLeft} seats left
-                </Badge>
-              </div>
-              <CardDescription className="text-white/80">
-                Every Thursday - A surprise culinary journey
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-white">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{nextMysteryDinner.date}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{nextMysteryDinner.time}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>{nextMysteryDinner.location}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4" />
-                  <span>{nextMysteryDinner.totalSeats - nextMysteryDinner.seatsLeft}/{nextMysteryDinner.totalSeats}</span>
-                </div>
-              </div>
-              <Button 
-                className="w-full bg-white text-mystery-purple hover:bg-white/90"
-                onClick={() => navigate('/mystery-dinner')}
-              >
-                RSVP Now
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Featured Admin Events Carousel */}
+          <EventsCarousel />
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
