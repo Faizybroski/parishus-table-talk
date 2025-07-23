@@ -18,7 +18,8 @@ import {
   Heart,
   Star,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
@@ -39,6 +40,7 @@ const Navigation = () => {
     { icon: Home, label: 'Home', path: '/' },
     { icon: Calendar, label: 'My Events', path: '/events' },
     { icon: Search, label: 'Explore', path: '/explore' },
+    { icon: UtensilsCrossed, label: 'Restaurants', path: '/restaurants' },
     { icon: Heart, label: 'RSVPs', path: '/rsvps' },
     { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
     { icon: Star, label: 'Crossed Paths', path: '/crossed-paths' },

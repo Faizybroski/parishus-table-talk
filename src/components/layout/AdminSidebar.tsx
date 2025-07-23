@@ -22,7 +22,8 @@ import {
   Shield,
   Crown,
   Bell,
-  FileText
+  FileText,
+  UtensilsCrossed
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -41,6 +42,7 @@ const AdminSidebar = () => {
     const baseItems = [
       { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
       { title: "Events", url: "/admin/events", icon: Calendar },
+      { title: "Restaurants", url: "/admin/restaurants", icon: UtensilsCrossed },
       { title: "Users", url: "/admin/users", icon: Users },
       { title: "Crossed Paths", url: "/admin/crossed-paths", icon: Users },
       { title: "RSVPs", url: "/admin/rsvps", icon: UserCheck },

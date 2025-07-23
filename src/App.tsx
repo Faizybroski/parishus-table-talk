@@ -36,6 +36,7 @@ import NotFound from "./pages/NotFound";
 import RSVPs from "./pages/RSVPs";
 import EventDetails from "./pages/EventDetails";
 import EventEdit from "./pages/EventEdit";
+import Restaurants from "./pages/Restaurants";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,12 @@ const App = () => (
                 <ProtectedRoute>
                   <Navigation />
                   <EventEdit />
+                </ProtectedRoute>
+              } />
+              <Route path="/restaurants" element={
+                <ProtectedRoute>
+                  <Navigation />
+                  <Restaurants />
                 </ProtectedRoute>
               } />
               <Route path="/crossed-paths" element={
@@ -215,6 +222,13 @@ const App = () => (
                 <ProtectedAdminRoute requireSuperAdmin={true}>
                   <AdminLayout>
                     <AdminSettings />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/restaurants" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <Restaurants />
                   </AdminLayout>
                 </ProtectedAdminRoute>
               } />

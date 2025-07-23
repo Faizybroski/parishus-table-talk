@@ -188,6 +188,7 @@ export type Database = {
           location_name: string | null
           max_attendees: number | null
           name: string
+          restaurant_id: string | null
           rsvp_deadline: string | null
           status: Database["public"]["Enums"]["event_status"] | null
           tags: string[] | null
@@ -212,6 +213,7 @@ export type Database = {
           location_name?: string | null
           max_attendees?: number | null
           name: string
+          restaurant_id?: string | null
           rsvp_deadline?: string | null
           status?: Database["public"]["Enums"]["event_status"] | null
           tags?: string[] | null
@@ -236,6 +238,7 @@ export type Database = {
           location_name?: string | null
           max_attendees?: number | null
           name?: string
+          restaurant_id?: string | null
           rsvp_deadline?: string | null
           status?: Database["public"]["Enums"]["event_status"] | null
           tags?: string[] | null
@@ -247,6 +250,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -503,6 +513,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurants: {
+        Row: {
+          city: string
+          country: string
+          created_at: string
+          creator_id: string
+          full_address: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          state_province: string
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          country: string
+          created_at?: string
+          creator_id: string
+          full_address: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          state_province: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          country?: string
+          created_at?: string
+          creator_id?: string
+          full_address?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          state_province?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       rsvps: {
         Row: {
