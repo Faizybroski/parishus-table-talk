@@ -58,10 +58,19 @@ const CreateEvent = () => {
           setRestaurants([]);
         } else {
           setRestaurants(data || []);
+          
+          // Alert all restaurant names
+          if (data && data.length > 0) {
+            const restaurantNames = data.map(restaurant => restaurant.name).join(', ');
+            alert(`Available restaurants: ${restaurantNames}`);
+          } else {
+            alert('No restaurants found');
+          }
         }
       } catch (error) {
         console.error('Error fetching restaurants:', error);
         setRestaurants([]);
+        alert('Error loading restaurants');
       } finally {
         setRestaurantsLoading(false);
       }
