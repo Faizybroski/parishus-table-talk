@@ -65,9 +65,20 @@ export const useRestaurants = () => {
   };
 
   const createRestaurant = async (restaurant: Omit<RestaurantInsert, 'creator_id'>) => {
-    if (!user || !profile) return { data: null, error: new Error('User not authenticated') };
+    if (!user || !profile) return { data: null, error: new Error('User not authenticated or profile not found') };
 
     try {
+      // Double check that the profile exists in the database
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', profile.id)
+        .single();
+
+      if (profileError || !profileCheck) {
+        throw new Error('Profile not found in database. Please try refreshing the page.');
+      }
+
       const { data, error } = await supabase
         .from('restaurants')
         .insert({
@@ -91,6 +102,7 @@ export const useRestaurants = () => {
       
       return { data, error: null };
     } catch (error) {
+      console.error('Error creating restaurant:', error);
       return { data: null, error };
     }
   };

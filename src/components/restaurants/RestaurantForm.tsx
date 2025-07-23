@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ const RestaurantForm: React.FC<RestaurantFormProps> = ({
   onCancel
 }) => {
   const { createRestaurant, updateRestaurant } = useRestaurants();
+  const { profile, loading: profileLoading } = useProfile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: restaurant?.name || '',
@@ -44,6 +46,11 @@ const RestaurantForm: React.FC<RestaurantFormProps> = ({
       return;
     }
 
+    if (!profile) {
+      toast.error('Profile not loaded. Please try refreshing the page.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -61,17 +68,33 @@ const RestaurantForm: React.FC<RestaurantFormProps> = ({
       }
 
       if (result.error) {
-        throw result.error;
+        if (result.error.message) {
+          toast.error(result.error.message);
+        } else {
+          toast.error('Failed to save restaurant. Please try again.');
+        }
+        return;
       }
 
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving restaurant:', error);
-      toast.error('Failed to save restaurant');
+      toast.error(error.message || 'Failed to save restaurant');
     } finally {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center space-y-2">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
