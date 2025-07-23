@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, MapPin, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, MapPin, Edit, Trash2, Search, User } from 'lucide-react';
 import { toast } from 'sonner';
 import RestaurantForm from '@/components/restaurants/RestaurantForm';
 
@@ -41,7 +41,7 @@ const Restaurants = () => {
 
   const handleCreateSuccess = () => {
     setIsDialogOpen(false);
-    toast.success('Restaurant created successfully');
+    toast.success('Restaurant added successfully');
   };
 
   if (loading) {
@@ -201,6 +201,19 @@ const Restaurants = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Address</p>
                       <p className="text-sm">{restaurant.full_address}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-muted-foreground">Added By</p>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-sm">
+                          {restaurant.creator 
+                            ? `${restaurant.creator.first_name || ''} ${restaurant.creator.last_name || ''}`.trim() || restaurant.creator.email
+                            : 'Unknown'
+                          }
+                        </p>
+                      </div>
                     </div>
                     
                     <div className="flex gap-2">

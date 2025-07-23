@@ -36,16 +36,26 @@ const Navigation = () => {
     navigate('/');
   };
 
-  const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Calendar, label: 'My Events', path: '/events' },
-    { icon: Search, label: 'Explore', path: '/explore' },
-    { icon: UtensilsCrossed, label: 'Restaurants', path: '/restaurants' },
-    { icon: Heart, label: 'RSVPs', path: '/rsvps' },
-    { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
-    { icon: Star, label: 'Crossed Paths', path: '/crossed-paths' },
-    { icon: CreditCard, label: 'Subscription', path: '/subscription' },
-  ];
+  const getNavItems = () => {
+    const baseItems = [
+      { icon: Home, label: 'Home', path: '/' },
+      { icon: Calendar, label: 'My Events', path: '/events' },
+      { icon: Search, label: 'Explore', path: '/explore' },
+      { icon: UtensilsCrossed, label: 'Restaurants', path: '/restaurants' },
+      { icon: Heart, label: 'RSVPs', path: '/rsvps' },
+      { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
+      { icon: Star, label: 'Crossed Paths', path: '/crossed-paths' },
+    ];
+
+    // Only show subscription for admin and superadmin
+    if (profile?.role === 'admin' || profile?.role === 'superadmin') {
+      baseItems.push({ icon: CreditCard, label: 'Subscription', path: '/subscription' });
+    }
+
+    return baseItems;
+  };
+
+  const navItems = getNavItems();
 
   return (
     <nav className="bg-dark-surface border-b border-border">

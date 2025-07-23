@@ -4,7 +4,13 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
-export type Restaurant = Database['public']['Tables']['restaurants']['Row'];
+export type Restaurant = Database['public']['Tables']['restaurants']['Row'] & {
+  creator?: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  };
+};
 export type RestaurantInsert = Database['public']['Tables']['restaurants']['Insert'];
 export type RestaurantUpdate = Database['public']['Tables']['restaurants']['Update'];
 
@@ -29,14 +35,27 @@ export const useRestaurants = () => {
     try {
       let query = supabase
         .from('restaurants')
-        .select('*')
+        .select(`
+          *,
+          creator:profiles!restaurants_creator_id_fkey (
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Role-based filtering happens at the database level via RLS
       const { data, error } = await query;
 
       if (error) throw error;
-      setRestaurants(data || []);
+      // Transform the data to match our type expectations
+      const transformedData = data?.map(restaurant => ({
+        ...restaurant,
+        creator: Array.isArray(restaurant.creator) ? restaurant.creator[0] : restaurant.creator
+      })) || [];
+      
+      setRestaurants(transformedData);
     } catch (error) {
       console.error('Error fetching restaurants:', error);
       setRestaurants([]);
@@ -55,12 +74,19 @@ export const useRestaurants = () => {
           ...restaurant,
           creator_id: user.id
         })
-        .select()
+        .select(`
+          *,
+          creator:profiles!restaurants_creator_id_fkey (
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .single();
 
       if (error) throw error;
       
-      // Refresh the list
+      // Refresh the list immediately
       await fetchRestaurants();
       
       return { data, error: null };
@@ -78,12 +104,19 @@ export const useRestaurants = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select()
+        .select(`
+          *,
+          creator:profiles!restaurants_creator_id_fkey (
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .single();
 
       if (error) throw error;
       
-      // Refresh the list
+      // Refresh the list immediately
       await fetchRestaurants();
       
       return { data, error: null };
@@ -101,7 +134,7 @@ export const useRestaurants = () => {
 
       if (error) throw error;
       
-      // Refresh the list
+      // Refresh the list immediately
       await fetchRestaurants();
       
       return { error: null };
