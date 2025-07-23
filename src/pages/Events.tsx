@@ -98,6 +98,31 @@ const Events = () => {
     }
   }, [activeTab, userProfileId]);
 
+  // Add effect to refresh events when user navigates back to the page
+  useEffect(() => {
+    const handleFocus = () => {
+      if (userProfileId) {
+        fetchEvents(userProfileId);
+        fetchMyEvents(userProfileId);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userProfileId) {
+        fetchEvents(userProfileId);
+        fetchMyEvents(userProfileId);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [userProfileId]);
+
   const fetchEvents = async (profileId?: string) => {
     const currentProfileId = profileId || userProfileId;
     if (!currentProfileId) return;
