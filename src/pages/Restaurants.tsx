@@ -124,51 +124,51 @@ const Restaurants = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Restaurants</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your restaurant locations for events
-            </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Restaurants</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your restaurant locations for events
+              </p>
+            </div>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setSelectedRestaurant(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Restaurant
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {selectedRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
+                  </DialogTitle>
+                </DialogHeader>
+                <RestaurantForm
+                  restaurant={selectedRestaurant}
+                  onSuccess={selectedRestaurant ? handleEditSuccess : handleCreateSuccess}
+                  onCancel={() => setIsDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setSelectedRestaurant(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Restaurant
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
-                </DialogTitle>
-              </DialogHeader>
-              <RestaurantForm
-                restaurant={selectedRestaurant}
-                onSuccess={selectedRestaurant ? handleEditSuccess : handleCreateSuccess}
-                onCancel={() => setIsDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search restaurants by name, city, or country..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Restaurant Grid */}
-        {filteredRestaurants.length === 0 ? (
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search restaurants by name, city, or country..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {/* Restaurant Grid */}
+          {filteredRestaurants.length === 0 ? (
           <div className="text-center py-12">
             <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -293,8 +293,9 @@ const Restaurants = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
