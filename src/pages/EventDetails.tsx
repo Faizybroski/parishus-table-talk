@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRestaurants } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface Event {
   date_time: string;
   location_name: string;
   location_address: string;
+  restaurant_id: string | null;
   max_attendees: number;
   dining_style: string;
   dietary_theme: string;
@@ -41,6 +43,12 @@ interface Event {
     last_name: string;
     profile_photo_url: string;
     email: string;
+  };
+  restaurants?: {
+    name: string;
+    city: string;
+    country: string;
+    full_address: string;
   };
   rsvps?: Array<{
     id: string;
@@ -59,6 +67,7 @@ const EventDetails = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { restaurants } = useRestaurants();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
@@ -97,6 +106,12 @@ const EventDetails = () => {
             last_name,
             profile_photo_url,
             email
+          ),
+          restaurants:restaurant_id (
+            name,
+            city,
+            country,
+            full_address
           ),
           rsvps (
             id,
@@ -386,6 +401,11 @@ const EventDetails = () => {
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">{event.location_name}</p>
+                      {event.restaurants && (
+                        <p className="text-sm text-peach-gold">
+                          {event.restaurants.name} - {event.restaurants.city}, {event.restaurants.country}
+                        </p>
+                      )}
                       {event.location_address && (
                         <p className="text-sm text-muted-foreground">{event.location_address}</p>
                       )}
