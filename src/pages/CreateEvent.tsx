@@ -38,33 +38,8 @@ const CreateEvent = () => {
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { restaurants, loading: restaurantsLoading } = useRestaurants();
+  const { restaurants } = useRestaurants();
   const navigate = useNavigate();
-
-  // Add debugging console logs
-  console.log('CreateEvent Debug:', {
-    user: !!user,
-    profile: !!profile,
-    authLoading,
-    profileLoading,
-    restaurantsLoading,
-    userEmail: user?.email,
-    profileId: profile?.id
-  });
-
-  // Additional safety check
-  if (authLoading) {
-    console.log('🔄 Still loading auth...');
-  }
-  if (profileLoading) {
-    console.log('🔄 Still loading profile...');
-  }
-  if (!user && !authLoading) {
-    console.log('❌ No user found after loading');
-  }
-  if (!profile && !profileLoading && user) {
-    console.log('❌ No profile found for user:', user.email);
-  }
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -93,18 +68,23 @@ const CreateEvent = () => {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
+    
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `event-photos/${fileName}`;
+      
       const { error: uploadError } = await supabase.storage
         .from('event-photos')
         .upload(filePath, file);
+      
       if (uploadError) throw uploadError;
+      
       const { data: { publicUrl } } = supabase.storage
         .from('event-photos')
         .getPublicUrl(filePath);
+      
       handleInputChange('cover_photo_url', publicUrl);
       toast({
         title: "Photo uploaded!",
@@ -123,6 +103,7 @@ const CreateEvent = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!user || !profile) {
       toast({
         title: "Error",
@@ -131,12 +112,15 @@ const CreateEvent = () => {
       });
       return;
     }
+    
     setLoading(true);
+    
     try {
       const dateTime = new Date(`${formData.date}T${formData.time}`);
       const rsvpDeadline = formData.rsvp_deadline_date && formData.rsvp_deadline_time 
         ? new Date(`${formData.rsvp_deadline_date}T${formData.rsvp_deadline_time}`)
         : null;
+      
       const { data, error } = await supabase
         .from('events')
         .insert({
@@ -158,8 +142,10 @@ const CreateEvent = () => {
         } as any)
         .select()
         .single();
+      
       if (error) throw error;
 
+      // Create RSVP for the creator
       const { error: rsvpError } = await supabase
         .from('rsvps')
         .insert({
@@ -167,15 +153,12 @@ const CreateEvent = () => {
           user_id: profile.id,
           status: 'confirmed'
         });
+      
       if (rsvpError) {
-        toast({
-          title: 'RSVP Error',
-          description: rsvpError.message,
-          variant: 'destructive'
-        });
-        return false;
+        console.error('RSVP Error:', rsvpError);
       }
 
+      // Create reservation for the creator
       const { error: reservationError } = await supabase
         .from('reservations')
         .insert({
@@ -184,19 +167,16 @@ const CreateEvent = () => {
           reservation_type: 'standard',
           reservation_status: 'confirmed'
         });
+      
       if (reservationError) {
-        toast({
-          title: 'Reservation Error',
-          description: reservationError.message,
-          variant: 'destructive'
-        });
-        return false;
+        console.error('Reservation Error:', reservationError);
       }
 
       toast({
         title: "Event created!",
         description: "Your event has been created successfully and you're automatically attending.",
       });
+      
       navigate('/events');
     } catch (error: any) {
       toast({
@@ -212,7 +192,7 @@ const CreateEvent = () => {
   const isFormValid = formData.name && formData.description && formData.date && 
                       formData.time && formData.location_name;
 
-  // Handle loading states
+  // Show loading while authentication or profile is loading
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -224,32 +204,29 @@ const CreateEvent = () => {
     );
   }
 
-  // Handle authentication requirement
+  // Redirect if not authenticated
   if (!user) {
     navigate('/auth');
     return null;
   }
 
-  // Handle missing profile
+  // Show error if no profile
   if (!profile) {
-    console.log('🚨 Redirecting due to missing profile');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <h2 className="text-xl font-semibold">Profile Required</h2>
+          <h2 className="text-xl font-semibold text-foreground">Profile Required</h2>
           <p className="text-muted-foreground">Please complete your profile to create events.</p>
-          <button 
+          <Button 
             onClick={() => navigate('/profile')}
-            className="bg-peach-gold hover:bg-peach-gold/90 text-white px-4 py-2 rounded-md"
+            className="bg-peach-gold hover:bg-peach-gold/90"
           >
             Complete Profile
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
-
-  console.log('✅ All checks passed, rendering form...');
 
   return (
     <div className="min-h-screen bg-background">
@@ -263,7 +240,8 @@ const CreateEvent = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <Card className="shadow-card border-border">
+            {/* Event Details Card */}
+            <Card>
               <CardHeader>
                 <CardTitle>Event Details</CardTitle>
               </CardHeader>
@@ -336,9 +314,7 @@ const CreateEvent = () => {
                           <SelectItem key={restaurant.id} value={restaurant.id}>
                             {restaurant.name} - {restaurant.city}, {restaurant.country}
                           </SelectItem>
-                        )) : (
-                          <SelectItem value="" disabled>No restaurants available</SelectItem>
-                        )}
+                        )) : null}
                       </SelectContent>
                     </Select>
                   </div>
@@ -406,7 +382,8 @@ const CreateEvent = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card border-border">
+            {/* Event Photo Card */}
+            <Card>
               <CardHeader>
                 <CardTitle>Event Photo</CardTitle>
               </CardHeader>
@@ -465,7 +442,8 @@ const CreateEvent = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card border-border">
+            {/* Event Preferences Card */}
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
@@ -513,7 +491,8 @@ const CreateEvent = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card border-border">
+            {/* Tags Card */}
+            <Card>
               <CardHeader>
                 <CardTitle>Tags</CardTitle>
               </CardHeader>
@@ -548,6 +527,7 @@ const CreateEvent = () => {
               </CardContent>
             </Card>
 
+            {/* Submit Buttons */}
             <div className="flex justify-end space-x-4">
               <Button
                 type="button"
