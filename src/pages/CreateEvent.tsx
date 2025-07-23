@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useRestaurants } from '@/hooks/useRestaurants';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,12 +36,40 @@ const CreateEvent = () => {
     is_mystery_dinner: false
   });
   const [newTag, setNewTag] = useState('');
+  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(false);
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user && profile) {
+      fetchRestaurants();
+    }
+  }, [user, profile]);
+
+  const fetchRestaurants = async () => {
+    if (!user || !profile) return;
+    
+    setRestaurantsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      
+      setRestaurants(data || []);
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+      setRestaurants([]);
+    } finally {
+      setRestaurantsLoading(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
