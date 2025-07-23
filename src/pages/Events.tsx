@@ -114,13 +114,49 @@ const Events = () => {
       }
     };
 
+    // Add storage event listener for cross-tab communication
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'eventUpdated' && userProfileId) {
+        fetchEvents(userProfileId);
+        fetchMyEvents(userProfileId);
+        // Clear the storage item after handling
+        localStorage.removeItem('eventUpdated');
+      }
+    };
+
+    // Add popstate listener for browser navigation
+    const handlePopState = () => {
+      if (userProfileId) {
+        setTimeout(() => {
+          fetchEvents(userProfileId);
+          fetchMyEvents(userProfileId);
+        }, 100);
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('popstate', handlePopState);
     };
+  }, [userProfileId]);
+
+  // Add interval-based refresh to ensure data stays current
+  useEffect(() => {
+    if (!userProfileId) return;
+
+    const refreshInterval = setInterval(() => {
+      fetchEvents(userProfileId);
+      fetchMyEvents(userProfileId);
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
   }, [userProfileId]);
 
   const fetchEvents = async (profileId?: string) => {

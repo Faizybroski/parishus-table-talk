@@ -135,6 +135,12 @@ const EventEdit = () => {
         description: "Your changes have been saved."
       });
       
+      // Trigger refresh for Events page via localStorage
+      localStorage.setItem('eventUpdated', Date.now().toString());
+      
+      // Also trigger a custom event for in-page refresh
+      window.dispatchEvent(new CustomEvent('eventUpdated'));
+      
       navigate(`/event/${eventId}/details`);
     } catch (error: any) {
       console.error('Error updating event:', error);
