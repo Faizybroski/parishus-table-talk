@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,10 +15,12 @@ import {
   X, 
   HelpCircle,
   AlertTriangle,
-  ArrowLeft
+  ArrowLeft,
+  CreditCard
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import PaymentModal from '@/components/payment/PaymentModal';
 
 interface Event {
   id: string;
@@ -46,6 +48,7 @@ interface UserRSVP {
 
 const EventRSVP = () => {
   const { eventId } = useParams<{ eventId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -55,12 +58,29 @@ const EventRSVP = () => {
   const [confirmedCount, setConfirmedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     if (eventId && user) {
       fetchEvent();
     }
   }, [eventId, user]);
+
+  useEffect(() => {
+    // Check for payment success/failure in URL params
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      handlePaymentSuccess();
+    } else if (paymentStatus === 'cancelled') {
+      toast({
+        title: "Payment cancelled",
+        description: "Your RSVP was not processed. Please try again.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      navigate(`/event-rsvp/${eventId}`, { replace: true });
+    }
+  }, [searchParams, eventId, navigate]);
 
   const fetchEvent = async () => {
     try {
@@ -116,8 +136,29 @@ const EventRSVP = () => {
     }
   };
 
+  const handlePaymentSuccess = async () => {
+    // Clean up URL first
+    navigate(`/event-rsvp/${eventId}`, { replace: true });
+    
+    toast({
+      title: "Payment successful!",
+      description: "Return to this page to verify your RSVP status.",
+    });
+    
+    // Refresh event data to show updated RSVP
+    setTimeout(() => {
+      fetchEvent();
+    }, 2000);
+  };
+
   const handleRSVP = async (response: 'yes' | 'no' | 'maybe') => {
     if (!user || !eventId) return;
+
+    // For "yes" responses, require payment first
+    if (response === 'yes' && !userRsvp) {
+      setShowPaymentModal(true);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -132,7 +173,7 @@ const EventRSVP = () => {
         
         toast({ title: `RSVP updated to "${response}"` });
       } else {
-        // Create new RSVP - need to get profile ID first
+        // For non-payment responses (no/maybe), create RSVP directly
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('id')
@@ -356,8 +397,17 @@ const EventRSVP = () => {
                   disabled={submitting || (isEventFull && userRsvp?.response_status !== 'yes')}
                   className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700"
                 >
-                  <Check className="h-4 w-4" />
-                  <span>Yes, I'll attend</span>
+                  {!userRsvp ? (
+                    <>
+                      <CreditCard className="h-4 w-4" />
+                      <span>Pay & RSVP Yes</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      <span>Yes, I'll attend</span>
+                    </>
+                  )}
                 </Button>
                 
                 <Button
@@ -382,6 +432,14 @@ const EventRSVP = () => {
               </div>
             )}
 
+            {!userRsvp && canRSVP && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-blue-800 dark:text-blue-200 text-sm">
+                  <strong>Payment Required:</strong> A $25.00 payment is required to confirm your "Yes" RSVP for this event. "Maybe" and "No" responses are free.
+                </p>
+              </div>
+            )}
+
             {userRsvp && canRSVP && (
               <p className="text-sm text-muted-foreground text-center">
                 You can change your RSVP response until the deadline.
@@ -395,6 +453,17 @@ const EventRSVP = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Payment Modal */}
+        {event && (
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            event={event}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
+        )}
+
       </div>
     </div>
   );

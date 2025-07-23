@@ -1,1 +1,7 @@
 project_id = "jigznrpgzoyrbqbrpsqx"
+
+[functions.create-rsvp-payment]
+verify_jwt = true
+
+[functions.verify-rsvp-payment] 
+verify_jwt = true
