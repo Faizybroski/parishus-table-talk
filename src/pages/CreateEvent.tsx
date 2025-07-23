@@ -35,10 +35,20 @@ const CreateEvent = () => {
     is_mystery_dinner: false
   });
   const [newTag, setNewTag] = useState('');
-  const { user } = useAuth();
-  const { profile } = useProfile();
-  const { restaurants } = useRestaurants();
+  
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   const navigate = useNavigate();
+
+  // Add debugging console logs
+  console.log('CreateEvent Debug:', {
+    user: !!user,
+    profile: !!profile,
+    authLoading,
+    profileLoading,
+    restaurantsLoading
+  });
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -185,6 +195,42 @@ const CreateEvent = () => {
 
   const isFormValid = formData.name && formData.description && formData.date && 
                       formData.time && formData.location_name;
+
+  // Handle loading states
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin mx-auto border-4 border-peach-gold border-t-transparent rounded-full" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle authentication requirement
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
+
+  // Handle missing profile
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl font-semibold">Profile Required</h2>
+          <p className="text-muted-foreground">Please complete your profile to create events.</p>
+          <button 
+            onClick={() => navigate('/profile')}
+            className="bg-peach-gold hover:bg-peach-gold/90 text-white px-4 py-2 rounded-md"
+          >
+            Complete Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
