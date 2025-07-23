@@ -97,6 +97,10 @@ export const useRestaurants = () => {
 
       if (error) throw error;
       
+      // Trigger refresh events for immediate UI update
+      localStorage.setItem('restaurantUpdated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('restaurantUpdated'));
+      
       // Refresh the list immediately
       await fetchRestaurants();
       
@@ -128,6 +132,10 @@ export const useRestaurants = () => {
 
       if (error) throw error;
       
+      // Trigger refresh events for immediate UI update
+      localStorage.setItem('restaurantUpdated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('restaurantUpdated'));
+      
       // Refresh the list immediately
       await fetchRestaurants();
       
@@ -145,6 +153,10 @@ export const useRestaurants = () => {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Trigger refresh events for immediate UI update
+      localStorage.setItem('restaurantUpdated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('restaurantUpdated'));
       
       // Refresh the list immediately
       await fetchRestaurants();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
@@ -12,11 +12,68 @@ import { toast } from 'sonner';
 import RestaurantForm from '@/components/restaurants/RestaurantForm';
 
 const Restaurants = () => {
-  const { restaurants, loading, deleteRestaurant, canEdit, canDelete } = useRestaurants();
+  const { restaurants, loading, deleteRestaurant, canEdit, canDelete, refetch } = useRestaurants();
   const { profile } = useProfile();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Add comprehensive refresh mechanism
+  useEffect(() => {
+    const handleFocus = () => {
+      refetch();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refetch();
+      }
+    };
+
+    // Add storage event listener for cross-tab communication
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'restaurantUpdated') {
+        refetch();
+        // Clear the storage item after handling
+        localStorage.removeItem('restaurantUpdated');
+      }
+    };
+
+    // Add custom event listener for in-page updates
+    const handleRestaurantUpdate = () => {
+      refetch();
+    };
+
+    // Add popstate listener for browser navigation
+    const handlePopState = () => {
+      setTimeout(() => {
+        refetch();
+      }, 100);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('restaurantUpdated', handleRestaurantUpdate);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('restaurantUpdated', handleRestaurantUpdate);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [refetch]);
+
+  // Add interval-based refresh to ensure data stays current
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      refetch();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [refetch]);
 
   const filteredRestaurants = restaurants.filter(restaurant =>
     restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,11 +93,21 @@ const Restaurants = () => {
   const handleEditSuccess = () => {
     setIsDialogOpen(false);
     setSelectedRestaurant(null);
+    
+    // Trigger refresh events for immediate UI update
+    localStorage.setItem('restaurantUpdated', Date.now().toString());
+    window.dispatchEvent(new CustomEvent('restaurantUpdated'));
+    
     toast.success('Restaurant updated successfully');
   };
 
   const handleCreateSuccess = () => {
     setIsDialogOpen(false);
+    
+    // Trigger refresh events for immediate UI update
+    localStorage.setItem('restaurantUpdated', Date.now().toString());
+    window.dispatchEvent(new CustomEvent('restaurantUpdated'));
+    
     toast.success('Restaurant added successfully');
   };
 
