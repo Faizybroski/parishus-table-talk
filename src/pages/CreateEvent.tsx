@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useRestaurants } from '@/hooks/useRestaurants';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ const CreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
-    restaurant_id: '',
+    
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -38,7 +38,7 @@ const CreateEvent = () => {
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { restaurants } = useRestaurants();
+  
   const navigate = useNavigate();
 
   const handleInputChange = (field: string, value: any) => {
@@ -130,7 +130,7 @@ const CreateEvent = () => {
           date_time: dateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
-          restaurant_id: formData.restaurant_id || null,
+          restaurant_id: null,
           max_attendees: formData.max_attendees,
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
@@ -302,23 +302,6 @@ const CreateEvent = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant_id">Restaurant (Optional)</Label>
-                    <Select value={formData.restaurant_id} onValueChange={(value) => handleInputChange('restaurant_id', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a restaurant or leave blank for custom venue" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                        {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
-                          <SelectItem key={restaurant.id} value={restaurant.id}>
-                            {restaurant.name} - {restaurant.city}, {restaurant.country}
-                          </SelectItem>
-                        )) : null}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="location_name">Venue Name *</Label>
                     <div className="relative">
