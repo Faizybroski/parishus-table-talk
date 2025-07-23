@@ -47,8 +47,24 @@ const CreateEvent = () => {
     profile: !!profile,
     authLoading,
     profileLoading,
-    restaurantsLoading
+    restaurantsLoading,
+    userEmail: user?.email,
+    profileId: profile?.id
   });
+
+  // Additional safety check
+  if (authLoading) {
+    console.log('🔄 Still loading auth...');
+  }
+  if (profileLoading) {
+    console.log('🔄 Still loading profile...');
+  }
+  if (!user && !authLoading) {
+    console.log('❌ No user found after loading');
+  }
+  if (!profile && !profileLoading && user) {
+    console.log('❌ No profile found for user:', user.email);
+  }
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -216,6 +232,7 @@ const CreateEvent = () => {
 
   // Handle missing profile
   if (!profile) {
+    console.log('🚨 Redirecting due to missing profile');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -231,6 +248,8 @@ const CreateEvent = () => {
       </div>
     );
   }
+
+  console.log('✅ All checks passed, rendering form...');
 
   return (
     <div className="min-h-screen bg-background">
@@ -313,11 +332,13 @@ const CreateEvent = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                        {restaurants.map((restaurant) => (
+                        {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
                           <SelectItem key={restaurant.id} value={restaurant.id}>
                             {restaurant.name} - {restaurant.city}, {restaurant.country}
                           </SelectItem>
-                        ))}
+                        )) : (
+                          <SelectItem value="" disabled>No restaurants available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
