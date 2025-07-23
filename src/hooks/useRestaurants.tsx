@@ -21,21 +21,12 @@ export const useRestaurants = () => {
   const { profile } = useProfile();
 
   useEffect(() => {
-    console.log('useRestaurants useEffect triggered', { user: !!user, profile: !!profile });
-    if (user && profile) {
-      console.log('Fetching restaurants...');
-      fetchRestaurants();
-    } else {
-      console.log('No user or profile, setting empty restaurants');
-      setRestaurants([]);
-      setLoading(false);
-    }
-  }, [user, profile]);
+    console.log('useRestaurants useEffect triggered');
+    fetchRestaurants();
+  }, []);
 
   const fetchRestaurants = async () => {
-    console.log('fetchRestaurants called', { user: !!user, profile: !!profile });
-    if (!user || !profile) return;
-
+    console.log('fetchRestaurants called');
     console.log('Starting restaurant fetch...');
     try {
       let query = supabase
