@@ -136,6 +136,48 @@ export type Database = {
           },
         ]
       }
+      crossed_paths_log: {
+        Row: {
+          created_at: string
+          cross_count: number | null
+          date_crossed: string
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          restaurant_id: string | null
+          restaurant_name: string | null
+          updated_at: string
+          user_a_id: string
+          user_b_id: string
+        }
+        Insert: {
+          created_at?: string
+          cross_count?: number | null
+          date_crossed?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          restaurant_id?: string | null
+          restaurant_name?: string | null
+          updated_at?: string
+          user_a_id: string
+          user_b_id: string
+        }
+        Update: {
+          created_at?: string
+          cross_count?: number | null
+          date_crossed?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          restaurant_id?: string | null
+          restaurant_name?: string | null
+          updated_at?: string
+          user_a_id?: string
+          user_b_id?: string
+        }
+        Relationships: []
+      }
       event_invitations: {
         Row: {
           event_id: string
@@ -171,6 +213,7 @@ export type Database = {
       events: {
         Row: {
           admin_notification_email: string | null
+          auto_suggest_crossed_paths: boolean | null
           cover_photo_url: string | null
           created_at: string
           creator_id: string
@@ -180,6 +223,7 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style: Database["public"]["Enums"]["dining_style"] | null
+          guest_invitation_type: string | null
           id: string
           is_mystery_dinner: boolean | null
           location_address: string | null
@@ -196,6 +240,7 @@ export type Database = {
         }
         Insert: {
           admin_notification_email?: string | null
+          auto_suggest_crossed_paths?: boolean | null
           cover_photo_url?: string | null
           created_at?: string
           creator_id: string
@@ -205,6 +250,7 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
+          guest_invitation_type?: string | null
           id?: string
           is_mystery_dinner?: boolean | null
           location_address?: string | null
@@ -221,6 +267,7 @@ export type Database = {
         }
         Update: {
           admin_notification_email?: string | null
+          auto_suggest_crossed_paths?: boolean | null
           cover_photo_url?: string | null
           created_at?: string
           creator_id?: string
@@ -230,6 +277,7 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
+          guest_invitation_type?: string | null
           id?: string
           is_mystery_dinner?: boolean | null
           location_address?: string | null
@@ -405,6 +453,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_crossed_paths_tracking: boolean | null
           created_at: string
           dietary_preferences:
             | Database["public"]["Enums"]["dietary_preference"][]
@@ -427,6 +476,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allow_crossed_paths_tracking?: boolean | null
           created_at?: string
           dietary_preferences?:
             | Database["public"]["Enums"]["dietary_preference"][]
@@ -451,6 +501,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allow_crossed_paths_tracking?: boolean | null
           created_at?: string
           dietary_preferences?:
             | Database["public"]["Enums"]["dietary_preference"][]
@@ -513,6 +564,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurant_visits: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          restaurant_id: string | null
+          restaurant_name: string | null
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          restaurant_id?: string | null
+          restaurant_name?: string | null
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          restaurant_id?: string | null
+          restaurant_name?: string | null
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: []
       }
       restaurants: {
         Row: {
