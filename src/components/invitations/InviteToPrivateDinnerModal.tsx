@@ -107,6 +107,16 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
 
     setLoading(true);
     try {
+      // Get the current user's profile ID
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', currentUserId)
+        .single();
+
+      if (profileError || !profileData) {
+        throw new Error('Unable to find user profile');
+      }
       const eventDateTime = new Date(selectedDate || new Date());
       const [hours, minutes] = selectedTime.split(':');
       eventDateTime.setHours(parseInt(hours), parseInt(minutes));
@@ -132,7 +142,7 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .insert({
-          creator_id: currentUserId,
+          creator_id: profileData.id,
           name: `Private Dinner: ${crossedPath.matched_user.first_name} & You`,
           description: `You and ${crossedPath.matched_user.first_name} crossed paths ${crossedPath.total_crosses} times! Let's meet up for dinner.`,
           date_time: eventDateTime.toISOString(),
