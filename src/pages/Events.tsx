@@ -42,6 +42,11 @@ interface Event {
     last_name?: string;
     profile_photo_url?: string;
   };
+  restaurants?: {
+    name: string;
+    city: string;
+    state_province: string;
+  };
   rsvps?: {
     id: string;
     status: string;
@@ -177,9 +182,15 @@ const Events = () => {
             id,
             status,
             user_id
+          ),
+          restaurants:restaurant_id (
+            name,
+            city,
+            state_province
           )
         `)
         .eq('status', 'active')
+        .neq('creator_id', currentProfileId)
         .order('date_time', { ascending: true });
 
       if (error) throw error;
@@ -212,10 +223,10 @@ const Events = () => {
     if (!user || !currentProfileId) return;
 
     try {
-      console.log('Fetching RSVP events for user:', user.id, 'profile:', currentProfileId);
+      console.log('Fetching events created by user:', user.id, 'profile:', currentProfileId);
       
-      // Fetch only events user has RSVP'd to (including events they created if they RSVPed)
-      const { data: rsvpEvents, error: rsvpError } = await supabase
+      // Fetch events created by the user
+      const { data: userEvents, error: userError } = await supabase
         .from('events')
         .select(`
           *,
@@ -224,24 +235,29 @@ const Events = () => {
             last_name,
             profile_photo_url
           ),
-          rsvps!inner (
+          rsvps (
             id,
             status,
             user_id
+          ),
+          restaurants:restaurant_id (
+            name,
+            city,
+            state_province
           )
         `)
-        .eq('rsvps.user_id', currentProfileId)
-        .eq('rsvps.status', 'confirmed')
+        .eq('creator_id', currentProfileId)
+        .eq('status', 'active')
         .order('date_time', { ascending: true });
 
-      if (rsvpError) {
-        console.error('RSVP events error:', rsvpError);
-        throw rsvpError;
+      if (userError) {
+        console.error('User events error:', userError);
+        throw userError;
       }
 
-      console.log('RSVP events:', rsvpEvents);
+      console.log('User events:', userEvents);
 
-      const eventsWithCounts = (rsvpEvents || []).map(event => ({
+      const eventsWithCounts = (userEvents || []).map(event => ({
         ...event,
         rsvp_count: event.rsvps?.filter(r => r.status === 'confirmed').length || 0,
         user_rsvp: event.rsvps?.filter(r => r.user_id === currentProfileId) || []
@@ -453,7 +469,14 @@ const Events = () => {
                 {/* Location */}
                 <div className="flex items-center space-x-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm truncate">{event.location_name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm truncate">{event.location_name}</span>
+                    {event.restaurants && (
+                      <span className="text-xs text-muted-foreground">
+                        {event.restaurants.name} - {event.restaurants.city}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Host */}
@@ -568,9 +591,9 @@ const Events = () => {
         <div className="space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Events</h1>
+              <h1 className="text-3xl font-bold text-foreground">My Events</h1>
               <p className="text-muted-foreground mt-1">
-                Discover and join dining experiences
+                Manage your created events
               </p>
             </div>
             <Button 
@@ -582,34 +605,23 @@ const Events = () => {
             </Button>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upcoming">Discover Events</TabsTrigger>
-              <TabsTrigger value="my-events">My Events</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="upcoming" className="space-y-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search events..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="space-y-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search my events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-              <div className="space-y-6">
-                <EventCards events={filteredEvents} />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="my-events" className="space-y-6">
-              <div className="space-y-6">
-                <EventCards events={myEvents} showActions />
-              </div>
-            </TabsContent>
-          </Tabs>
+            <EventCards events={myEvents.filter(event =>
+              event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              event.location_name.toLowerCase().includes(searchTerm.toLowerCase())
+            )} showActions />
+          </div>
         </div>
 
         {/* Payment Modal */}

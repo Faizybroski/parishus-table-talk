@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useRestaurants } from '@/hooks/useRestaurants';
+import { useRestaurants, Restaurant } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, MapPin, Upload, Plus, X, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
 
 const EventEdit = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -25,6 +26,7 @@ const EventEdit = () => {
     time: '',
     location_name: '',
     location_address: '',
+    restaurant_id: '',
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -71,6 +73,7 @@ const EventEdit = () => {
         time: eventDate.toTimeString().slice(0, 5),
         location_name: data.location_name || '',
         location_address: data.location_address || '',
+        restaurant_id: data.restaurant_id || '',
         max_attendees: data.max_attendees || 10,
         dining_style: data.dining_style || '',
         dietary_theme: data.dietary_theme || '',
@@ -158,8 +161,18 @@ const EventEdit = () => {
     
     if (!user || !profile) {
       toast({
-        title: "Error",
-        description: "Please ensure you are logged in and your profile is complete.",
+        title: "Authentication required",
+        description: "Please log in to update events",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate required image upload
+    if (!formData.cover_photo_url) {
+      toast({
+        title: "Image required",
+        description: "Please upload an event photo",
         variant: "destructive"
       });
       return;
@@ -181,12 +194,13 @@ const EventEdit = () => {
           date_time: dateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
+          restaurant_id: formData.restaurant_id || null,
           max_attendees: formData.max_attendees,
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
           rsvp_deadline: rsvpDeadline?.toISOString() || null,
           tags: formData.tags,
-          cover_photo_url: formData.cover_photo_url || null,
+          cover_photo_url: formData.cover_photo_url,
           is_mystery_dinner: formData.is_mystery_dinner,
           updated_at: new Date().toISOString()
         } as any)
@@ -194,12 +208,16 @@ const EventEdit = () => {
       
       if (error) throw error;
 
+      // Trigger refresh events for immediate UI update
+      localStorage.setItem('eventUpdated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('eventUpdated'));
+
       toast({
         title: "Event updated!",
         description: "Your event has been updated successfully.",
       });
       
-      navigate(`/event/${eventId}/details`);
+      navigate('/events');
     } catch (error: any) {
       toast({
         title: "Error",
@@ -212,7 +230,7 @@ const EventEdit = () => {
   };
 
   const isFormValid = formData.name && formData.description && formData.date && 
-                      formData.time && formData.location_name;
+                      formData.time && formData.location_name && formData.cover_photo_url;
 
   // Show loading while authentication or profile is loading
   if (authLoading || profileLoading || loading) {
@@ -327,27 +345,22 @@ const EventEdit = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
-                  <Select 
-                    value="" 
-                    onValueChange={(restaurantId) => {
-                      const restaurant = restaurants.find(r => r.id === restaurantId);
+                  <RestaurantSearchDropdown
+                    restaurants={restaurants}
+                    value={formData.restaurant_id}
+                    onSelect={(restaurant: Restaurant | null) => {
                       if (restaurant) {
+                        handleInputChange('restaurant_id', restaurant.id);
                         handleInputChange('location_name', restaurant.name);
                         handleInputChange('location_address', restaurant.full_address);
+                      } else {
+                        handleInputChange('restaurant_id', '');
+                        handleInputChange('location_name', '');
+                        handleInputChange('location_address', '');
                       }
                     }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a restaurant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {restaurants.map((restaurant) => (
-                        <SelectItem key={restaurant.id} value={restaurant.id}>
-                          {restaurant.name} - {restaurant.city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Search and select a restaurant..."
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -415,7 +428,7 @@ const EventEdit = () => {
             {/* Event Photo Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Event Photo</CardTitle>
+                <CardTitle>Event Photo *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {formData.cover_photo_url && (

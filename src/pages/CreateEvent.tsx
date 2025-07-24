@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useRestaurants } from '@/hooks/useRestaurants';
+import { useRestaurants, Restaurant } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, Clock, MapPin, Upload, Plus, X, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
 
 const CreateEvent = () => {
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ const CreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
-    
+    restaurant_id: '',
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -108,81 +109,72 @@ const CreateEvent = () => {
     
     if (!user || !profile) {
       toast({
-        title: "Error",
-        description: "Please ensure you are logged in and your profile is complete.",
+        title: "Authentication required",
+        description: "Please log in to create events",
         variant: "destructive"
       });
       return;
     }
-    
+
+    // Validate required image upload
+    if (!formData.cover_photo_url) {
+      toast({
+        title: "Image required",
+        description: "Please upload an event photo",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
-      const dateTime = new Date(`${formData.date}T${formData.time}`);
-      const rsvpDeadline = formData.rsvp_deadline_date && formData.rsvp_deadline_time 
-        ? new Date(`${formData.rsvp_deadline_date}T${formData.rsvp_deadline_time}`)
-        : null;
+      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
+      let rsvpDeadline = null;
       
+      if (formData.rsvp_deadline_date && formData.rsvp_deadline_time) {
+        rsvpDeadline = new Date(`${formData.rsvp_deadline_date}T${formData.rsvp_deadline_time}`);
+      } else if (formData.rsvp_deadline_date) {
+        rsvpDeadline = new Date(`${formData.rsvp_deadline_date}T23:59`);
+      }
+
       const { data, error } = await supabase
         .from('events')
         .insert({
           creator_id: profile.id,
-          name: formData.name,
-          description: formData.description,
-          date_time: dateTime.toISOString(),
+          date_time: eventDateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
-          
+          restaurant_id: formData.restaurant_id || null,
           max_attendees: formData.max_attendees,
+          status: 'active',
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
           rsvp_deadline: rsvpDeadline?.toISOString() || null,
-          tags: formData.tags,
-          cover_photo_url: formData.cover_photo_url || null,
+          tags: formData.tags.length > 0 ? formData.tags : null,
+          cover_photo_url: formData.cover_photo_url,
           is_mystery_dinner: formData.is_mystery_dinner,
-          status: 'active'
+          description: formData.description,
+          name: formData.name
         } as any)
         .select()
         .single();
-      
+
       if (error) throw error;
 
-      // Create RSVP for the creator
-      const { error: rsvpError } = await supabase
-        .from('rsvps')
-        .insert({
-          event_id: data.id,
-          user_id: profile.id,
-          status: 'confirmed'
-        });
-      
-      if (rsvpError) {
-        console.error('RSVP Error:', rsvpError);
-      }
-
-      // Create reservation for the creator
-      const { error: reservationError } = await supabase
-        .from('reservations')
-        .insert({
-          event_id: data.id,
-          user_id: profile.id,
-          reservation_type: 'standard',
-          reservation_status: 'confirmed'
-        });
-      
-      if (reservationError) {
-        console.error('Reservation Error:', reservationError);
-      }
+      // Trigger refresh events for immediate UI update
+      localStorage.setItem('eventUpdated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('eventUpdated'));
 
       toast({
         title: "Event created!",
-        description: "Your event has been created successfully and you're automatically attending.",
+        description: "Your event has been created successfully. You can now invite participants.",
       });
       
       navigate('/events');
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Error creating event",
         description: error.message || "Failed to create event",
         variant: "destructive"
       });
@@ -192,7 +184,7 @@ const CreateEvent = () => {
   };
 
   const isFormValid = formData.name && formData.description && formData.date && 
-                      formData.time && formData.location_name;
+                      formData.time && formData.location_name && formData.cover_photo_url;
 
   // Show loading while authentication or profile is loading
   if (authLoading || profileLoading) {
@@ -308,27 +300,22 @@ const CreateEvent = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
-                  <Select 
-                    value="" 
-                    onValueChange={(restaurantId) => {
-                      const restaurant = restaurants.find(r => r.id === restaurantId);
+                  <RestaurantSearchDropdown
+                    restaurants={restaurants}
+                    value={formData.restaurant_id}
+                    onSelect={(restaurant: Restaurant | null) => {
                       if (restaurant) {
+                        handleInputChange('restaurant_id', restaurant.id);
                         handleInputChange('location_name', restaurant.name);
                         handleInputChange('location_address', restaurant.full_address);
+                      } else {
+                        handleInputChange('restaurant_id', '');
+                        handleInputChange('location_name', '');
+                        handleInputChange('location_address', '');
                       }
                     }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a restaurant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {restaurants.map((restaurant) => (
-                        <SelectItem key={restaurant.id} value={restaurant.id}>
-                          {restaurant.name} - {restaurant.city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Search and select a restaurant..."
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -396,7 +383,7 @@ const CreateEvent = () => {
             {/* Event Photo Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Event Photo</CardTitle>
+                <CardTitle>Event Photo *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {formData.cover_photo_url && (
