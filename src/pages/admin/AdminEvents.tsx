@@ -248,7 +248,7 @@ const AdminEvents = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/event/${event.id}`)}>
+                        <DropdownMenuItem onClick={() => navigate(`/event/${event.id}/details`)}>
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>

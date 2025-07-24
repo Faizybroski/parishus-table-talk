@@ -1,45 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, MapPin, Upload, X, Users, ArrowLeft, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Upload, X } from 'lucide-react';
-import { format } from 'date-fns';
-import AdminLayout from '@/components/layout/AdminLayout';
 import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
-import { useRestaurants } from '@/hooks/useRestaurants';
+import { useRestaurants, Restaurant } from '@/hooks/useRestaurants';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 const AdminEditEvent = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { profile } = useProfile();
-  const { restaurants } = useRestaurants();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [eventData, setEventData] = useState<any>(null);
-  const [fetchingEvent, setFetchingEvent] = useState(true);
-
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    date_time: '',
+    date: '',
+    time: '',
     location_name: '',
     location_address: '',
-    max_attendees: 10,
     restaurant_id: '',
-    cover_photo_url: ''
+    max_attendees: 10,
+    dining_style: '',
+    dietary_theme: '',
+    rsvp_deadline_date: '',
+    rsvp_deadline_time: '',
+    tags: [] as string[],
+    cover_photo_url: '',
+    is_mystery_dinner: false
   });
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [newTag, setNewTag] = useState('');
+  
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {
@@ -48,102 +52,106 @@ const AdminEditEvent = () => {
   }, [id]);
 
   const fetchEvent = async () => {
+    if (!id) return;
+
     try {
       const { data, error } = await supabase
         .from('events')
-        .select(`
-          *,
-          restaurants (
-            id,
-            name,
-            full_address
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
 
-      setEventData(data);
+      // Populate form with existing data
+      const eventDate = new Date(data.date_time);
+      const rsvpDeadline = data.rsvp_deadline ? new Date(data.rsvp_deadline) : null;
+
       setFormData({
-        name: data.name,
+        name: data.name || '',
         description: data.description || '',
-        date_time: data.date_time ? format(new Date(data.date_time), "yyyy-MM-dd'T'HH:mm") : '',
+        date: eventDate.toISOString().split('T')[0],
+        time: eventDate.toTimeString().slice(0, 5),
         location_name: data.location_name || '',
         location_address: data.location_address || '',
-        max_attendees: data.max_attendees || 10,
         restaurant_id: data.restaurant_id || '',
-        cover_photo_url: data.cover_photo_url || ''
+        max_attendees: data.max_attendees || 10,
+        dining_style: data.dining_style || '',
+        dietary_theme: data.dietary_theme || '',
+        rsvp_deadline_date: rsvpDeadline ? rsvpDeadline.toISOString().split('T')[0] : '',
+        rsvp_deadline_time: rsvpDeadline ? rsvpDeadline.toTimeString().slice(0, 5) : '',
+        tags: data.tags || [],
+        cover_photo_url: data.cover_photo_url || '',
+        is_mystery_dinner: data.is_mystery_dinner || false
       });
-      setPreviewUrl(data.cover_photo_url || '');
     } catch (error) {
       console.error('Error fetching event:', error);
       toast({
         title: "Error",
         description: "Failed to load event details",
-        variant: "destructive"
+        variant: "destructive",
       });
       navigate('/admin/events');
     } finally {
-      setFetchingEvent(false);
+      setLoading(false);
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag)
+    }));
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Please select an image under 5MB",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select an image file",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
-
-  const uploadImage = async (): Promise<string | null> => {
-    if (!selectedFile) return formData.cover_photo_url;
-
+    if (!file || !user) return;
+    
     setUploading(true);
     try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `event-photos/${fileName}`;
-
+      
       const { error: uploadError } = await supabase.storage
         .from('event-photos')
-        .upload(filePath, selectedFile);
-
+        .upload(filePath, file);
+      
       if (uploadError) throw uploadError;
-
+      
       const { data: { publicUrl } } = supabase.storage
         .from('event-photos')
         .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
+      
+      handleInputChange('cover_photo_url', publicUrl);
+      toast({
+        title: "Photo uploaded!",
+        description: "Your event cover photo has been saved.",
+      });
+    } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
+        description: error.message || "Failed to upload photo",
         variant: "destructive"
       });
-      return null;
     } finally {
       setUploading(false);
     }
@@ -151,38 +159,61 @@ const AdminEditEvent = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user || !profile) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to update events",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate required image upload
+    if (!formData.cover_photo_url) {
+      toast({
+        title: "Image required",
+        description: "Please upload an event photo",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
-
+    
     try {
-      // Upload image if new file selected
-      const imageUrl = await uploadImage();
-      if (selectedFile && !imageUrl) {
-        setLoading(false);
-        return;
-      }
-
-      const updateData = {
-        name: formData.name,
-        description: formData.description,
-        date_time: formData.date_time,
-        location_name: formData.location_name,
-        location_address: formData.location_address,
-        max_attendees: formData.max_attendees,
-        restaurant_id: formData.restaurant_id || null,
-        cover_photo_url: imageUrl
-      };
-
+      const dateTime = new Date(`${formData.date}T${formData.time}`);
+      const rsvpDeadline = formData.rsvp_deadline_date && formData.rsvp_deadline_time 
+        ? new Date(`${formData.rsvp_deadline_date}T${formData.rsvp_deadline_time}`)
+        : null;
+      
       const { error } = await supabase
         .from('events')
-        .update(updateData)
+        .update({
+          name: formData.name,
+          description: formData.description,
+          date_time: dateTime.toISOString(),
+          location_name: formData.location_name,
+          location_address: formData.location_address,
+          restaurant_id: formData.restaurant_id || null,
+          max_attendees: formData.max_attendees,
+          dining_style: formData.dining_style || null,
+          dietary_theme: formData.dietary_theme || null,
+          rsvp_deadline: rsvpDeadline?.toISOString() || null,
+          tags: formData.tags,
+          cover_photo_url: formData.cover_photo_url,
+          is_mystery_dinner: formData.is_mystery_dinner,
+          updated_at: new Date().toISOString()
+        } as any)
         .eq('id', id);
-
+      
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Event updated successfully",
+        title: "Event updated!",
+        description: "Your event has been updated successfully.",
       });
+      
       navigate('/admin/events');
     } catch (error: any) {
       toast({
@@ -195,27 +226,45 @@ const AdminEditEvent = () => {
     }
   };
 
-  const handleRestaurantSelect = (restaurant: any) => {
-    setFormData(prev => ({
-      ...prev,
-      restaurant_id: restaurant.id,
-      location_name: restaurant.name,
-      location_address: restaurant.full_address
-    }));
-  };
+  const isFormValid = formData.name && formData.description && formData.date && 
+                      formData.time && formData.location_name && formData.cover_photo_url;
 
-  const removeImage = () => {
-    setSelectedFile(null);
-    setPreviewUrl('');
-    setFormData(prev => ({ ...prev, cover_photo_url: '' }));
-  };
-
-  if (fetchingEvent) {
+  // Show loading while authentication or profile is loading
+  if (authLoading || profileLoading || loading) {
     return (
       <AdminLayout>
-        <div className="p-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center py-8">Loading event...</div>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="h-8 w-8 animate-spin mx-auto border-4 border-peach-gold border-t-transparent rounded-full" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Redirect if not authenticated  
+  if (!user) {
+    console.log('No user, redirecting to auth');
+    navigate('/auth');
+    return null;
+  }
+
+  // Show error if no profile
+  if (!profile) {
+    console.log('No profile found');
+    return (
+      <AdminLayout>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Profile Required</h2>
+            <p className="text-muted-foreground">Please complete your profile to edit events.</p>
+            <Button 
+              onClick={() => navigate('/profile')}
+              className="bg-peach-gold hover:bg-peach-gold/90"
+            >
+              Complete Profile
+            </Button>
           </div>
         </div>
       </AdminLayout>
@@ -224,198 +273,366 @@ const AdminEditEvent = () => {
 
   return (
     <AdminLayout>
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center mb-8">
-            <Button 
-              variant="ghost" 
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
               onClick={() => navigate('/admin/events')}
-              className="flex items-center space-x-2"
+              className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to Events</span>
+              Back to Events
             </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Edit Event</h1>
+              <p className="text-muted-foreground mt-1">
+                Update your dining experience details
+              </p>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">Edit Event</CardTitle>
-                  <CardDescription>Update event details and settings</CardDescription>
-                </div>
-                {eventData?.status && (
-                  <Badge variant={eventData.status === 'active' ? 'default' : 'secondary'}>
-                    {eventData.status}
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Image Upload */}
-                <div className="space-y-2">
-                  <Label htmlFor="image">Event Image *</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    {previewUrl ? (
-                      <div className="relative">
-                        <img
-                          src={previewUrl}
-                          alt="Event preview"
-                          className="w-full h-64 object-cover rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={removeImage}
-                          className="absolute top-2 right-2"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="mt-4">
-                          <Label htmlFor="image-upload" className="cursor-pointer">
-                            <span className="mt-2 block text-sm font-medium text-gray-900">
-                              Click to upload an image
-                            </span>
-                          </Label>
-                          <Input
-                            id="image-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileSelect}
-                            className="hidden"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Event Name */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Event Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Event Name *</Label>
                   <Input
                     id="name"
-                    type="text"
-                    required
+                    placeholder="e.g., Wine Tasting Social"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter event name"
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
                   />
                 </div>
 
-                {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description *</Label>
                   <Textarea
                     id="description"
+                    placeholder="Describe your event, what to expect, dress code, etc."
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Event description..."
+                    onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={4}
+                    required
                   />
                 </div>
 
-                {/* Date and Time */}
-                <div className="space-y-2">
-                  <Label htmlFor="date_time">Date & Time *</Label>
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="date_time"
-                      type="datetime-local"
-                      required
-                      value={formData.date_time}
-                      onChange={(e) => setFormData(prev => ({ ...prev, date_time: e.target.value }))}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date *</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => handleInputChange('date', e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time *</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="time"
+                        type="time"
+                        value={formData.time}
+                        onChange={(e) => handleInputChange('time', e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Restaurant Selection */}
                 <div className="space-y-2">
-                  <Label>Restaurant</Label>
+                  <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
                   <RestaurantSearchDropdown
                     restaurants={restaurants}
                     value={formData.restaurant_id}
-                    onSelect={handleRestaurantSelect}
-                    placeholder="Search restaurants..."
+                    onSelect={(restaurant: Restaurant | null) => {
+                      if (restaurant) {
+                        handleInputChange('restaurant_id', restaurant.id);
+                        handleInputChange('location_name', restaurant.name);
+                        handleInputChange('location_address', restaurant.full_address);
+                      } else {
+                        handleInputChange('restaurant_id', '');
+                        handleInputChange('location_name', '');
+                        handleInputChange('location_address', '');
+                      }
+                    }}
+                    placeholder="Search and select a restaurant..."
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Search and select a restaurant to auto-fill venue details
-                  </p>
                 </div>
 
-                {/* Venue Name */}
                 <div className="space-y-2">
                   <Label htmlFor="location_name">Venue Name *</Label>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="location_name"
-                      type="text"
-                      required
+                      placeholder="e.g., The Garden Cafe"
                       value={formData.location_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
-                      placeholder="Venue name"
+                      onChange={(e) => handleInputChange('location_name', e.target.value)}
+                      className="pl-10"
+                      required
                     />
                   </div>
                 </div>
 
-                {/* Address */}
                 <div className="space-y-2">
-                  <Label htmlFor="location_address">Full Address *</Label>
+                  <Label htmlFor="location_address">Address</Label>
                   <Input
                     id="location_address"
-                    type="text"
-                    required
+                    placeholder="123 Main St, City, State"
                     value={formData.location_address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location_address: e.target.value }))}
-                    placeholder="Complete address"
+                    onChange={(e) => handleInputChange('location_address', e.target.value)}
                   />
                 </div>
 
-                {/* Max Attendees */}
-                <div className="space-y-2">
-                  <Label htmlFor="max_attendees">Maximum Attendees *</Label>
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="max_attendees">Maximum Attendees *</Label>
                     <Input
                       id="max_attendees"
                       type="number"
-                      min="1"
-                      max="100"
-                      required
+                      min="2"
+                      max="50"
                       value={formData.max_attendees}
-                      onChange={(e) => setFormData(prev => ({ ...prev, max_attendees: parseInt(e.target.value) }))}
+                      onChange={(e) => handleInputChange('max_attendees', parseInt(e.target.value))}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="rsvp_deadline_date">RSVP Deadline Date</Label>
+                    <Input
+                      id="rsvp_deadline_date"
+                      type="date"
+                      value={formData.rsvp_deadline_date}
+                      onChange={(e) => handleInputChange('rsvp_deadline_date', e.target.value)}
                     />
                   </div>
                 </div>
 
-                {/* Submit Buttons */}
-                <div className="flex justify-end space-x-4 pt-6">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => navigate('/admin/events')}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={loading || uploading}
-                    className="min-w-[120px]"
-                  >
-                    {loading || uploading ? 'Updating...' : 'Update Event'}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="rsvp_deadline_time">RSVP Deadline Time</Label>
+                  <Input
+                    id="rsvp_deadline_time"
+                    type="time"
+                    value={formData.rsvp_deadline_time}
+                    onChange={(e) => handleInputChange('rsvp_deadline_time', e.target.value)}
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Event Photo Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Photo *</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.cover_photo_url && (
+                  <div className="relative">
+                    <img
+                      src={formData.cover_photo_url}
+                      alt="Event cover"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleInputChange('cover_photo_url', '')}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="photo-upload"
+                  disabled={uploading}
+                />
+                
+                <label htmlFor="photo-upload">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploading}
+                    className="w-full cursor-pointer"
+                    asChild
+                  >
+                    <span>
+                      {uploading ? (
+                        <>
+                          <Upload className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {formData.cover_photo_url ? 'Change Photo' : 'Upload Cover Photo'}
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* Event Preferences Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dining_style">Dining Style</Label>
+                    <Select
+                      value={formData.dining_style}
+                      onValueChange={(value) => handleInputChange('dining_style', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dining style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="family_style">Family Style</SelectItem>
+                        <SelectItem value="fine_dining">Fine Dining</SelectItem>
+                        <SelectItem value="casual">Casual</SelectItem>
+                        <SelectItem value="buffet">Buffet</SelectItem>
+                        <SelectItem value="tapas">Tapas</SelectItem>
+                        <SelectItem value="prix_fixe">Prix Fixe</SelectItem>
+                        <SelectItem value="tasting_menu">Tasting Menu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dietary_theme">Dietary Theme</Label>
+                    <Select
+                      value={formData.dietary_theme}
+                      onValueChange={(value) => handleInputChange('dietary_theme', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dietary theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vegan">Vegan</SelectItem>
+                        <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                        <SelectItem value="gluten_free">Gluten Free</SelectItem>
+                        <SelectItem value="keto">Keto</SelectItem>
+                        <SelectItem value="paleo">Paleo</SelectItem>
+                        <SelectItem value="mediterranean">Mediterranean</SelectItem>
+                        <SelectItem value="asian_fusion">Asian Fusion</SelectItem>
+                        <SelectItem value="italian">Italian</SelectItem>
+                        <SelectItem value="mexican">Mexican</SelectItem>
+                        <SelectItem value="indian">Indian</SelectItem>
+                        <SelectItem value="middle_eastern">Middle Eastern</SelectItem>
+                        <SelectItem value="seafood">Seafood</SelectItem>
+                        <SelectItem value="steakhouse">Steakhouse</SelectItem>
+                        <SelectItem value="wine_pairing">Wine Pairing</SelectItem>
+                        <SelectItem value="cocktail_dinner">Cocktail Dinner</SelectItem>
+                        <SelectItem value="brunch">Brunch</SelectItem>
+                        <SelectItem value="dessert_tasting">Dessert Tasting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Tags Section */}
+                <div className="space-y-4">
+                  <Label>Event Tags</Label>
+                  
+                  {/* Current Tags */}
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="px-3 py-1">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="ml-2 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add Tag Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a tag (e.g., networking, wine, Italian)"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addTag}
+                      disabled={!newTag.trim()}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Mystery Dinner Toggle */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="mystery_dinner"
+                    checked={formData.is_mystery_dinner}
+                    onChange={(e) => handleInputChange('is_mystery_dinner', e.target.checked)}
+                    className="rounded border-gray-300 text-peach-gold focus:ring-peach-gold"
+                  />
+                  <Label htmlFor="mystery_dinner" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    This is a Mystery Dinner (location details hidden until RSVP)
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/admin/events')}
+                className="flex-1"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || uploading || !isFormValid}
+                className="flex-1 bg-peach-gold hover:bg-peach-gold/90"
+              >
+                {loading ? 'Updating...' : 'Update Event'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </AdminLayout>
