@@ -158,11 +158,11 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
 
       if (invitationError) throw invitationError;
 
-      // Send notification to invited user
+      // Send notification to invited user (using profile id)
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
-          user_id: crossedPath.matched_user.user_id,
+          user_id: crossedPath.matched_user.id, // Use profile id instead of user_id
           type: 'crossed_paths_match',
           title: 'Private Dinner Invitation!',
           message: `You've been invited to a private dinner at ${restaurantName} on ${format(eventDateTime, 'EEEE, MMMM do')} at ${format(eventDateTime, 'h:mm a')}`,

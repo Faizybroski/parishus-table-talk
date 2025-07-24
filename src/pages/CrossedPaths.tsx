@@ -396,7 +396,7 @@ const CrossedPaths = () => {
           isOpen={showInviteModal}
           onClose={() => setShowInviteModal(false)}
           crossedPath={selectedCrossedPath}
-          currentUserId={profile?.id || ''}
+          currentUserId={user?.id || ''}
         />
       </div>
     </div>
