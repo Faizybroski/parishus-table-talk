@@ -20,6 +20,11 @@ interface CrossedPath {
   user2_id: string;
   total_crosses: number;
   locations: string[];
+  location_details?: Array<{
+    name: string;
+    address?: string;
+    cross_count: number;
+  }>;
   matched_user: {
     id: string;
     user_id: string;
