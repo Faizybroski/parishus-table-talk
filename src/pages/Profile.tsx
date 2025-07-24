@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Edit, Save, X, CreditCard, Shield } from 'lucide-react';
+import { Camera, Edit, Save, X, CreditCard, Shield, Building, MapPin } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -452,6 +452,31 @@ const Profile = () => {
                     {profile.gender_identity ? profile.gender_identity.replace('_', ' ') : 'Not set'}
                   </p>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Building className="h-5 w-5" />
+                <span>Visit History</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">My Restaurant Visits</h3>
+                  <p className="text-muted-foreground">Track your dining history and discover crossed paths</p>
+                </div>
+                <Button
+                  onClick={() => navigate('/my-visits')}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>View History</span>
+                </Button>
               </div>
             </CardContent>
           </Card>

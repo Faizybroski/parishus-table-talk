@@ -38,6 +38,7 @@ import RSVPs from "./pages/RSVPs";
 import EventDetails from "./pages/EventDetails";
 import EventEdit from "./pages/EventEdit";
 import Restaurants from "./pages/Restaurants";
+import MyVisits from "./pages/MyVisits";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,12 @@ const App = () => (
                 <ProtectedRoute>
                   <Navigation />
                   <CrossedPaths />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-visits" element={
+                <ProtectedRoute>
+                  <Navigation />
+                  <MyVisits />
                 </ProtectedRoute>
               } />
               <Route path="/feedback" element={
