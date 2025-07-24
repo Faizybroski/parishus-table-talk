@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useRestaurants, Restaurant } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { Calendar, Clock, MapPin, Upload, Plus, X, Users, ArrowLeft, Save } from
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
+import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
 
 const AdminCreateEvent = () => {
   const [loading, setLoading] = useState(false);
@@ -24,6 +26,7 @@ const AdminCreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
+    restaurant_id: '',
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -36,6 +39,7 @@ const AdminCreateEvent = () => {
   const [newTag, setNewTag] = useState('');
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { restaurants } = useRestaurants();
   const navigate = useNavigate();
 
   const handleInputChange = (field: string, value: any) => {
@@ -103,6 +107,17 @@ const AdminCreateEvent = () => {
       });
       return;
     }
+
+    // Validate required image upload
+    if (!formData.cover_photo_url) {
+      toast({
+        title: "Image required",
+        description: "Please upload an event photo",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const dateTime = new Date(`${formData.date}T${formData.time}`);
@@ -118,6 +133,7 @@ const AdminCreateEvent = () => {
           date_time: dateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
+          restaurant_id: formData.restaurant_id || null,
           max_attendees: formData.max_attendees,
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
@@ -192,7 +208,7 @@ const AdminCreateEvent = () => {
   }
 
   const isFormValid = formData.name && formData.description && formData.date && 
-                      formData.time && formData.location_name;
+                      formData.time && formData.location_name && formData.cover_photo_url;
 
   return (
     <AdminLayout>
@@ -277,6 +293,26 @@ const AdminCreateEvent = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
+                  <RestaurantSearchDropdown
+                    restaurants={restaurants}
+                    value={formData.restaurant_id}
+                    onSelect={(restaurant: Restaurant | null) => {
+                      if (restaurant) {
+                        handleInputChange('restaurant_id', restaurant.id);
+                        handleInputChange('location_name', restaurant.name);
+                        handleInputChange('location_address', restaurant.full_address);
+                      } else {
+                        handleInputChange('restaurant_id', '');
+                        handleInputChange('location_name', '');
+                        handleInputChange('location_address', '');
+                      }
+                    }}
+                    placeholder="Search and select a restaurant..."
+                  />
+                </div>
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="location_name">Venue Name *</Label>
@@ -343,7 +379,7 @@ const AdminCreateEvent = () => {
 
             <Card className="shadow-card border-border">
               <CardHeader>
-                <CardTitle>Event Photo</CardTitle>
+                <CardTitle>Event Photo *</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {formData.cover_photo_url && (
