@@ -56,11 +56,11 @@ const CrossedPaths = () => {
         .from('crossed_paths')
         .select(`
           *,
-          user1:profiles!crossed_paths_user1_id_fkey(
+          user1:profiles!user1_id(
             id, user_id, first_name, last_name, profile_photo_url, job_title, 
             location_city, dining_style, dietary_preferences, gender_identity
           ),
-          user2:profiles!crossed_paths_user2_id_fkey(
+          user2:profiles!user2_id(
             id, user_id, first_name, last_name, profile_photo_url, job_title, 
             location_city, dining_style, dietary_preferences, gender_identity
           )
