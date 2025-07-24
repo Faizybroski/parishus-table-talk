@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-
+import { useRestaurants } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ const CreateEvent = () => {
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   
   const navigate = useNavigate();
 
@@ -304,6 +305,31 @@ const CreateEvent = () => {
                   </div>
                 </div>
 
+
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
+                  <Select 
+                    value="" 
+                    onValueChange={(restaurantId) => {
+                      const restaurant = restaurants.find(r => r.id === restaurantId);
+                      if (restaurant) {
+                        handleInputChange('location_name', restaurant.name);
+                        handleInputChange('location_address', restaurant.full_address);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a restaurant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {restaurants.map((restaurant) => (
+                        <SelectItem key={restaurant.id} value={restaurant.id}>
+                          {restaurant.name} - {restaurant.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="location_name">Venue Name *</Label>

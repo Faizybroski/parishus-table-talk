@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { useRestaurants } from '@/hooks/useRestaurants';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Calendar as CalendarIcon, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Upload, Plus, X, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const EventEdit = () => {
   const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [userProfileId, setUserProfileId] = useState<string | null>(null);
-  
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,35 +25,28 @@ const EventEdit = () => {
     time: '',
     location_name: '',
     location_address: '',
-    
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
     rsvp_deadline_date: '',
-    rsvp_deadline_time: ''
+    rsvp_deadline_time: '',
+    tags: [] as string[],
+    cover_photo_url: '',
+    is_mystery_dinner: false
   });
-
-
+  const [newTag, setNewTag] = useState('');
   
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const getUserProfile = async () => {
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-        setUserProfileId(profile?.id || null);
-      }
-    };
-    
-    getUserProfile().then(() => {
-      if (eventId) {
-        fetchEvent();
-      }
-    });
-  }, [eventId, user]);
+    if (eventId) {
+      fetchEvent();
+    }
+  }, [eventId]);
 
   const fetchEvent = async () => {
     if (!eventId) return;
@@ -79,12 +71,14 @@ const EventEdit = () => {
         time: eventDate.toTimeString().slice(0, 5),
         location_name: data.location_name || '',
         location_address: data.location_address || '',
-        
         max_attendees: data.max_attendees || 10,
         dining_style: data.dining_style || '',
         dietary_theme: data.dietary_theme || '',
         rsvp_deadline_date: rsvpDeadline ? rsvpDeadline.toISOString().split('T')[0] : '',
-        rsvp_deadline_time: rsvpDeadline ? rsvpDeadline.toTimeString().slice(0, 5) : ''
+        rsvp_deadline_time: rsvpDeadline ? rsvpDeadline.toTimeString().slice(0, 5) : '',
+        tags: data.tags || [],
+        cover_photo_url: data.cover_photo_url || '',
+        is_mystery_dinner: data.is_mystery_dinner || false
       });
     } catch (error) {
       console.error('Error fetching event:', error);
@@ -99,72 +93,160 @@ const EventEdit = () => {
     }
   };
 
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag)
+    }));
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+    
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `event-photos/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('event-photos')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(filePath);
+      
+      handleInputChange('cover_photo_url', publicUrl);
+      toast({
+        title: "Photo uploaded!",
+        description: "Your event cover photo has been saved.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload photo",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-
+    
+    if (!user || !profile) {
+      toast({
+        title: "Error",
+        description: "Please ensure you are logged in and your profile is complete.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
-      // Combine date and time
       const dateTime = new Date(`${formData.date}T${formData.time}`);
       const rsvpDeadline = formData.rsvp_deadline_date && formData.rsvp_deadline_time 
         ? new Date(`${formData.rsvp_deadline_date}T${formData.rsvp_deadline_time}`)
         : null;
-
-      const updateData = {
-        name: formData.name,
-        description: formData.description,
-        date_time: dateTime.toISOString(),
-        location_name: formData.location_name,
-        location_address: formData.location_address,
-        
-        max_attendees: formData.max_attendees,
-        dining_style: formData.dining_style as any || null,
-        dietary_theme: formData.dietary_theme as any || null,
-        rsvp_deadline: rsvpDeadline?.toISOString() || null,
-        updated_at: new Date().toISOString()
-      };
-
+      
       const { error } = await supabase
         .from('events')
-        .update(updateData)
+        .update({
+          name: formData.name,
+          description: formData.description,
+          date_time: dateTime.toISOString(),
+          location_name: formData.location_name,
+          location_address: formData.location_address,
+          max_attendees: formData.max_attendees,
+          dining_style: formData.dining_style || null,
+          dietary_theme: formData.dietary_theme || null,
+          rsvp_deadline: rsvpDeadline?.toISOString() || null,
+          tags: formData.tags,
+          cover_photo_url: formData.cover_photo_url || null,
+          is_mystery_dinner: formData.is_mystery_dinner,
+          updated_at: new Date().toISOString()
+        } as any)
         .eq('id', eventId);
-
+      
       if (error) throw error;
 
-      toast({ 
-        title: "Event updated successfully!",
-        description: "Your changes have been saved."
+      toast({
+        title: "Event updated!",
+        description: "Your event has been updated successfully.",
       });
-      
-      // Trigger refresh for Events page via localStorage
-      localStorage.setItem('eventUpdated', Date.now().toString());
-      
-      // Also trigger a custom event for in-page refresh
-      window.dispatchEvent(new CustomEvent('eventUpdated'));
       
       navigate(`/event/${eventId}/details`);
     } catch (error: any) {
-      console.error('Error updating event:', error);
-      toast({ 
-        title: "Error updating event", 
-        description: error.message,
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update event",
+        variant: "destructive"
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const isFormValid = formData.name && formData.description && formData.date && 
+                      formData.time && formData.location_name;
 
-  if (loading) {
+  // Show loading while authentication or profile is loading
+  if (authLoading || profileLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="h-8 w-8 animate-spin mx-auto border-4 border-peach-gold border-t-transparent rounded-full" />
-          <p className="text-muted-foreground">Loading event details...</p>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated  
+  if (!user) {
+    console.log('No user, redirecting to auth');
+    navigate('/auth');
+    return null;
+  }
+
+  // Show error if no profile
+  if (!profile) {
+    console.log('No profile found');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Profile Required</h2>
+          <p className="text-muted-foreground">Please complete your profile to edit events.</p>
+          <Button 
+            onClick={() => navigate('/profile')}
+            className="bg-peach-gold hover:bg-peach-gold/90"
+          >
+            Complete Profile
+          </Button>
         </div>
       </div>
     );
@@ -173,113 +255,152 @@ const EventEdit = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(`/event/${eventId}/details`)}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Event Details
-          </Button>
+        <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Edit Event</h1>
-            <p className="text-muted-foreground mt-1">Update your event details</p>
+            <p className="text-muted-foreground mt-1">
+              Update your dining experience details
+            </p>
           </div>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CalendarIcon className="h-5 w-5" />
-                <span>Event Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Event Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
                   <Label htmlFor="name">Event Name *</Label>
                   <Input
                     id="name"
+                    placeholder="e.g., Wine Tasting Social"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Enter event name"
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="max_attendees">Max Attendees *</Label>
-                  <Input
-                    id="max_attendees"
-                    type="number"
-                    value={formData.max_attendees}
-                    onChange={(e) => handleInputChange('max_attendees', parseInt(e.target.value))}
-                    min="1"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Describe your event..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Date & Time */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CalendarIcon className="h-5 w-5" />
-                <span>Date & Time</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date">Event Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your event, what to expect, dress code, etc."
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    rows={4}
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="time">Event Time *</Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date *</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => handleInputChange('date', e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time *</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="time"
+                        type="time"
+                        value={formData.time}
+                        onChange={(e) => handleInputChange('time', e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant">Choose Restaurant (Optional)</Label>
+                  <Select 
+                    value="" 
+                    onValueChange={(restaurantId) => {
+                      const restaurant = restaurants.find(r => r.id === restaurantId);
+                      if (restaurant) {
+                        handleInputChange('location_name', restaurant.name);
+                        handleInputChange('location_address', restaurant.full_address);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a restaurant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {restaurants.map((restaurant) => (
+                        <SelectItem key={restaurant.id} value={restaurant.id}>
+                          {restaurant.name} - {restaurant.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location_name">Venue Name *</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="location_name"
+                      placeholder="e.g., The Garden Cafe"
+                      value={formData.location_name}
+                      onChange={(e) => handleInputChange('location_name', e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location_address">Address</Label>
                   <Input
-                    id="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
-                    required
+                    id="location_address"
+                    placeholder="123 Main St, City, State"
+                    value={formData.location_address}
+                    onChange={(e) => handleInputChange('location_address', e.target.value)}
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="rsvp_deadline_date">RSVP Deadline Date</Label>
-                  <Input
-                    id="rsvp_deadline_date"
-                    type="date"
-                    value={formData.rsvp_deadline_date}
-                    onChange={(e) => handleInputChange('rsvp_deadline_date', e.target.value)}
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="max_attendees">Maximum Attendees *</Label>
+                    <Input
+                      id="max_attendees"
+                      type="number"
+                      min="2"
+                      max="50"
+                      value={formData.max_attendees}
+                      onChange={(e) => handleInputChange('max_attendees', parseInt(e.target.value))}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="rsvp_deadline_date">RSVP Deadline Date</Label>
+                    <Input
+                      id="rsvp_deadline_date"
+                      type="date"
+                      value={formData.rsvp_deadline_date}
+                      onChange={(e) => handleInputChange('rsvp_deadline_date', e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div>
+
+                <div className="space-y-2">
                   <Label htmlFor="rsvp_deadline_time">RSVP Deadline Time</Label>
                   <Input
                     id="rsvp_deadline_time"
@@ -288,107 +409,173 @@ const EventEdit = () => {
                     onChange={(e) => handleInputChange('rsvp_deadline_time', e.target.value)}
                   />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Location */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <span>Location</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              
-              <div>
-                <Label htmlFor="location_name">Venue Name *</Label>
-                <Input
-                  id="location_name"
-                  value={formData.location_name}
-                  onChange={(e) => handleInputChange('location_name', e.target.value)}
-                  placeholder="e.g., The Grand Restaurant"
-                  required
+            {/* Event Photo Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Photo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.cover_photo_url && (
+                  <div className="relative">
+                    <img
+                      src={formData.cover_photo_url}
+                      alt="Event cover"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleInputChange('cover_photo_url', '')}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="photo-upload"
+                  disabled={uploading}
                 />
-              </div>
-              <div>
-                <Label htmlFor="location_address">Address</Label>
-                <Input
-                  id="location_address"
-                  value={formData.location_address}
-                  onChange={(e) => handleInputChange('location_address', e.target.value)}
-                  placeholder="Full address including city, state"
-                />
-              </div>
-            </CardContent>
-          </Card>
+                
+                <label htmlFor="photo-upload">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploading}
+                    className="w-full cursor-pointer"
+                    asChild
+                  >
+                    <span>
+                      {uploading ? (
+                        <>
+                          <Upload className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {formData.cover_photo_url ? 'Change Photo' : 'Upload Cover Photo'}
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </label>
+              </CardContent>
+            </Card>
 
-          {/* Event Preferences */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Event Preferences</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="dining_style">Dining Style</Label>
-                  <Select value={formData.dining_style} onValueChange={(value) => handleInputChange('dining_style', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select dining style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="adventurous">Adventurous</SelectItem>
-                      <SelectItem value="foodie_enthusiast">Foodie Enthusiast</SelectItem>
-                      <SelectItem value="local_lover">Local Lover</SelectItem>
-                      <SelectItem value="comfort_food">Comfort Food</SelectItem>
-                      <SelectItem value="health_conscious">Health Conscious</SelectItem>
-                      <SelectItem value="social_butterfly">Social Butterfly</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Event Preferences Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-5 w-5" />
+                  <span>Event Preferences</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dining_style">Dining Style</Label>
+                    <Select value={formData.dining_style} onValueChange={(value) => handleInputChange('dining_style', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dining style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="adventurous">Adventurous</SelectItem>
+                        <SelectItem value="foodie_enthusiast">Foodie Enthusiast</SelectItem>
+                        <SelectItem value="local_lover">Local Lover</SelectItem>
+                        <SelectItem value="comfort_food">Comfort Food</SelectItem>
+                        <SelectItem value="health_conscious">Health Conscious</SelectItem>
+                        <SelectItem value="social_butterfly">Social Butterfly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dietary_theme">Dietary Preferences</Label>
+                    <Select value={formData.dietary_theme} onValueChange={(value) => handleInputChange('dietary_theme', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dietary preferences" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no_restrictions">No Restrictions</SelectItem>
+                        <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                        <SelectItem value="vegan">Vegan</SelectItem>
+                        <SelectItem value="gluten_free">Gluten Free</SelectItem>
+                        <SelectItem value="dairy_free">Dairy Free</SelectItem>
+                        <SelectItem value="keto">Keto</SelectItem>
+                        <SelectItem value="paleo">Paleo</SelectItem>
+                        <SelectItem value="kosher">Kosher</SelectItem>
+                        <SelectItem value="halal">Halal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="dietary_theme">Dietary Theme</Label>
-                  <Select value={formData.dietary_theme} onValueChange={(value) => handleInputChange('dietary_theme', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select dietary theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="omnivore">Omnivore</SelectItem>
-                      <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                      <SelectItem value="vegan">Vegan</SelectItem>
-                      <SelectItem value="gluten_free">Gluten Free</SelectItem>
-                      <SelectItem value="keto">Keto</SelectItem>
-                      <SelectItem value="paleo">Paleo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Submit */}
-          <div className="flex justify-end space-x-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => navigate(`/event/${eventId}/details`)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={saving}
-              className="bg-peach-gold hover:bg-peach-gold/90 flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
-            </Button>
-          </div>
-        </form>
+            {/* Tags Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tags</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Add a tag (e.g., wine, vegan, casual)"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  />
+                  <Button type="button" onClick={addTag} variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-destructive/20"
+                        onClick={() => removeTag(tag)}
+                      >
+                        {tag}
+                        <X className="h-3 w-3 ml-1" />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(`/event/${eventId}/details`)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!isFormValid || loading}
+                className="bg-peach-gold hover:bg-peach-gold/90"
+              >
+                {loading ? 'Updating...' : 'Update Event'}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
