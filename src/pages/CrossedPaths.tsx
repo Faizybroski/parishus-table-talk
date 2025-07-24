@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, Calendar, Users, User, Utensils, Heart } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import InviteToPrivateDinnerModal from '@/components/invitations/InviteToPrivateDinnerModal';
 
 interface CrossedPath {
   id: string;
@@ -38,6 +39,8 @@ const CrossedPaths = () => {
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<CrossedPath['matched_user'] | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [selectedCrossedPath, setSelectedCrossedPath] = useState<CrossedPath | null>(null);
   const { user } = useAuth();
   const { profile } = useProfile();
 
@@ -115,44 +118,9 @@ const CrossedPaths = () => {
     }
   };
 
-  const createPrivateEvent = async (matchedUserId: string) => {
-    if (!profile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .insert({
-          creator_id: profile.id,
-          name: "Private Dinner Invitation",
-          description: "A private dinner between crossed paths",
-          date_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Next week
-          location_name: "TBD",
-          max_attendees: 2,
-          tags: ['private', 'crossed-paths'],
-          is_mystery_dinner: true
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Auto-RSVP both users
-      await supabase.from('rsvps').insert([
-        { event_id: data.id, user_id: profile.user_id, status: 'confirmed' },
-        { event_id: data.id, user_id: matchedUserId, status: 'confirmed' }
-      ]);
-
-      toast({
-        title: "Private event created!",
-        description: "Your private dinner invitation has been sent.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to create private event",
-        variant: "destructive"
-      });
-    }
+  const handleInviteToDinner = (path: CrossedPath) => {
+    setSelectedCrossedPath(path);
+    setShowInviteModal(true);
   };
 
   const viewProfile = (user: CrossedPath['matched_user']) => {
@@ -258,7 +226,7 @@ const CrossedPaths = () => {
                           View Profile
                         </Button>
                         <Button
-                          onClick={() => createPrivateEvent(path.matched_user.user_id)}
+                          onClick={() => handleInviteToDinner(path)}
                           className="bg-peach-gold hover:bg-peach-gold/90 text-background"
                           size="sm"
                         >
@@ -378,7 +346,8 @@ const CrossedPaths = () => {
                   <Button 
                     onClick={() => {
                       setShowProfileModal(false);
-                      createPrivateEvent(selectedUserProfile.user_id);
+                      const path = crossedPaths.find(p => p.matched_user.user_id === selectedUserProfile?.user_id);
+                      if (path) handleInviteToDinner(path);
                     }}
                     className="w-full bg-peach-gold hover:bg-peach-gold/90 text-background font-semibold py-3 text-lg"
                     size="lg"
@@ -399,6 +368,14 @@ const CrossedPaths = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Invite to Private Dinner Modal */}
+        <InviteToPrivateDinnerModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          crossedPath={selectedCrossedPath}
+          currentUserId={profile?.id || ''}
+        />
       </div>
     </div>
   );

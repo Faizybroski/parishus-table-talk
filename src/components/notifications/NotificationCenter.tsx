@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import InvitationNotifications from './InvitationNotifications';
 
 interface Notification {
   id: string;
@@ -177,6 +178,9 @@ const NotificationCenter = () => {
         </SheetHeader>
 
         <div className="mt-6 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {/* Invitation Notifications */}
+          <InvitationNotifications onInvitationUpdate={fetchNotifications} />
+          
           {notifications.length === 0 ? (
             <Card className="shadow-card border-border">
               <CardContent className="py-12 text-center">
@@ -190,7 +194,11 @@ const NotificationCenter = () => {
               </CardContent>
             </Card>
           ) : (
-            notifications.map((notification) => (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                Other Notifications
+              </h3>
+              {notifications.map((notification) => (
               <Card
                 key={notification.id}
                 className={`shadow-card border-border cursor-pointer transition-colors ${
@@ -226,7 +234,8 @@ const NotificationCenter = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </SheetContent>
