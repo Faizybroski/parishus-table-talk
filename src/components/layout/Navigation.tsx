@@ -19,7 +19,8 @@ import {
   Star,
   CreditCard,
   MessageSquare,
-  UtensilsCrossed
+  UtensilsCrossed,
+  MapPin
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
@@ -45,6 +46,7 @@ const Navigation = () => {
       { icon: Heart, label: 'RSVPs', path: '/rsvps' },
       { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
       { icon: Star, label: 'Crossed Paths', path: '/crossed-paths' },
+      { icon: MapPin, label: 'My Visits', path: '/my-visits' },
     ];
 
     // Only show subscription for admin and superadmin
