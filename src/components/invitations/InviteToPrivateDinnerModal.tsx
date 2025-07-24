@@ -121,7 +121,9 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
       } else if (selectedLocationId !== 'new') {
         // Find the selected location from crossed paths
         const locationIndex = parseInt(selectedLocationId);
-        if (crossedPath.locations[locationIndex]) {
+        if (crossedPath.location_details && crossedPath.location_details[locationIndex]) {
+          restaurantName = crossedPath.location_details[locationIndex].name;
+        } else if (crossedPath.locations[locationIndex]) {
           restaurantName = crossedPath.locations[locationIndex];
         }
       }
@@ -224,8 +226,34 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
             </Label>
             
             <RadioGroup value={selectedLocationId} onValueChange={handleLocationSelect}>
-              {/* Display all crossed-path locations as radio cards */}
-              {crossedPath?.locations.map((location, index) => (
+              {/* Display all crossed-path restaurants as radio cards */}
+              {crossedPath?.location_details?.map((locationDetail, index) => (
+                <Card key={index} className={`cursor-pointer transition-colors ${selectedLocationId === index.toString() ? 'ring-2 ring-peach-gold' : ''}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value={index.toString()} id={`location-${index}`} />
+                      <Label htmlFor={`location-${index}`} className="cursor-pointer flex-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Utensils className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{locationDetail.name}</p>
+                            {locationDetail.address && (
+                              <p className="text-sm text-muted-foreground">{locationDetail.address}</p>
+                            )}
+                            <p className="text-sm text-green-600 font-medium">
+                              Crossed {locationDetail.cross_count} time{locationDetail.cross_count !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </Label>
+                    </div>
+                  </CardContent>
+                </Card>
+              )) || 
+              /* Fallback to basic locations if location_details not available */
+              crossedPath?.locations.map((location, index) => (
                 <Card key={index} className={`cursor-pointer transition-colors ${selectedLocationId === index.toString() ? 'ring-2 ring-peach-gold' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3">
@@ -237,7 +265,7 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
                           </div>
                           <div>
                             <p className="font-semibold">{location}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-green-600 font-medium">
                               Crossed {crossedPath.total_crosses} time{crossedPath.total_crosses !== 1 ? 's' : ''}
                             </p>
                           </div>
