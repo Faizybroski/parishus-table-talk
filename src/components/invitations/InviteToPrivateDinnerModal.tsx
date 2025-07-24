@@ -293,74 +293,59 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
           )}
 
           {/* Step 2: Date and Time Selection */}
-          {(selectedLocationId === 'new' || showDateTime) && (
-            <div>
-              <Label className="text-lg font-semibold mb-4 block">
-                Step 2: Select Date & Time {selectedLocationId !== 'new' && '(Optional)'}
-              </Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Date Picker */}
-                <div>
-                  <Label>Select Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          <div>
+            <Label className="text-lg font-semibold mb-4 block">
+              Step 2: Select Date & Time {selectedLocationId === 'new' ? '(Required)' : '(Optional)'}
+            </Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Date Picker */}
+              <div>
+                <Label>Select Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-                {/* Time Picker */}
-                <div>
-                  <Label>Select Time</Label>
-                  <Select value={selectedTime} onValueChange={setSelectedTime}>
-                    <SelectTrigger>
-                      <Clock className="mr-2 h-4 w-4" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeOptions.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {format(new Date(`2000-01-01T${time}`), 'h:mm a')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Time Picker */}
+              <div>
+                <Label>Select Time</Label>
+                <Select value={selectedTime} onValueChange={setSelectedTime}>
+                  <SelectTrigger>
+                    <Clock className="mr-2 h-4 w-4" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {format(new Date(`2000-01-01T${time}`), 'h:mm a')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
-
-          {/* Optional Date/Time toggle for old locations */}
-          {selectedLocationId !== '' && selectedLocationId !== 'new' && !showDateTime && (
-            <div className="text-center">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowDateTime(true)}
-                className="text-sm"
-              >
-                📅 Choose different date & time (optional)
-              </Button>
-            </div>
-          )}
+          </div>
 
           {/* Step 3: Send Invite Button */}
           <div className="flex justify-end space-x-3 pt-4">
