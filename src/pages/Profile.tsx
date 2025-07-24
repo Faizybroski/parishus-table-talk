@@ -493,7 +493,10 @@ const Profile = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Crossed Paths Tracking</h3>
                   <p className="text-muted-foreground">
-                    Allow Lovable to track your restaurant visits to enable Crossed Paths suggestions
+                    Allow Lovable to track your restaurant visits to enable Crossed Paths suggestions.
+                    <span className="block mt-1 text-xs">
+                      Visit restaurants, track your visits, and discover people you've crossed paths with within 14 days.
+                    </span>
                   </p>
                 </div>
                 <Switch
@@ -543,6 +546,30 @@ const Profile = () => {
                 >
                   <CreditCard className="h-4 w-4" />
                   <span>Manage</span>
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <Button 
+                  onClick={() => navigate('/rsvps')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  View RSVPs
+                </Button>
+                <Button 
+                  onClick={() => navigate('/my-visits')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  My Visits
+                </Button>
+                <Button 
+                  onClick={() => navigate('/crossed-paths')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Crossed Paths
                 </Button>
               </div>
             </CardContent>

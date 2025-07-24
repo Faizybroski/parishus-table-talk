@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Search, Filter, Clock, Building, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import RestaurantVisitTracker from '@/components/restaurants/RestaurantVisitTracker';
 
 interface RestaurantVisit {
   id: string;
@@ -117,35 +118,8 @@ const MyVisits = () => {
     setFilteredVisits(filtered);
   };
 
-  const trackNewVisit = async () => {
-    // This would typically be called automatically when a user visits a restaurant
-    // For demo purposes, we could add a manual "Add Visit" button
-    const restaurantName = prompt('Enter restaurant name:');
-    if (!restaurantName) return;
-
-    try {
-      const response = await supabase.functions.invoke('track-restaurant-visit', {
-        body: {
-          restaurant_name: restaurantName,
-          latitude: 40.7128, // Default to NYC coordinates for demo
-          longitude: -74.0060,
-        }
-      });
-
-      if (response.error) throw response.error;
-
-      await fetchVisits();
-      toast({
-        title: "Visit tracked!",
-        description: "Restaurant visit has been recorded.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to track visit",
-        variant: "destructive"
-      });
-    }
+  const handleVisitTracked = () => {
+    fetchVisits(); // Refresh the list when a new visit is tracked
   };
 
   if (loading) {
@@ -174,10 +148,7 @@ const MyVisits = () => {
                 Track your dining history and discover crossed paths
               </p>
             </div>
-            <Button onClick={trackNewVisit} className="bg-peach-gold hover:bg-peach-gold/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Visit
-            </Button>
+            <RestaurantVisitTracker onVisitTracked={handleVisitTracked} />
           </div>
 
           {/* Stats Cards */}
