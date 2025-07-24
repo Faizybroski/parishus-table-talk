@@ -7,13 +7,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, MapPin, Users, MoreHorizontal, Eye, Trash2, Plus } from 'lucide-react';
+import { Calendar, MapPin, Users, MoreHorizontal, Eye, Trash2, Plus, Edit, Building2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 
 interface Event {
@@ -22,13 +33,20 @@ interface Event {
   description: string;
   date_time: string;
   location_name: string;
+  location_address: string;
   max_attendees: number;
   status: 'active' | 'cancelled' | 'completed';
   creator_id: string;
+  cover_photo_url: string;
+  restaurant_id?: string;
   profiles: {
     first_name: string;
     last_name: string;
     email: string;
+  };
+  restaurants?: {
+    name: string;
+    full_address: string;
   };
   rsvps: Array<{
     id: string;
@@ -56,6 +74,10 @@ const AdminEvents = () => {
             first_name,
             last_name,
             email
+          ),
+          restaurants (
+            name,
+            full_address
           ),
           rsvps (
             id,
@@ -143,72 +165,124 @@ const AdminEvents = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">No events found</p>
-              </CardContent>
-            </Card>
+            <div className="col-span-full">
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <p className="text-muted-foreground">No events found</p>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             events.map((event) => (
-              <Card key={event.id}>
-                <CardHeader>
+              <Card key={event.id} className="group hover:shadow-lg transition-shadow duration-200">
+                <div className="relative">
+                  {event.cover_photo_url && (
+                    <div className="w-full h-48 relative overflow-hidden rounded-t-lg">
+                      <img
+                        src={event.cover_photo_url}
+                        alt={event.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <Badge className={getStatusColor(event.status)}>
+                      {event.status}
+                    </Badge>
+                  </div>
+                </div>
+                <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <CardTitle className="text-xl">{event.name}</CardTitle>
-                      <CardDescription>{event.description}</CardDescription>
+                    <div className="space-y-1 flex-1">
+                      <CardTitle className="text-lg line-clamp-2">{event.name}</CardTitle>
+                      <CardDescription className="line-clamp-2 text-sm">
+                        {event.description}
+                      </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(event.status)}>
-                        {event.status}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteEvent(event.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Event
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="ml-2 shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/event/${event.id}`)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/admin/events/edit/${event.id}`)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Event
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem 
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Event
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the event
+                                "{event.name}" and all related data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteEvent(event.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {format(new Date(event.date_time), 'PPP at p')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{event.location_name || 'Location TBD'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {event.rsvps?.length || 0} / {event.max_attendees} attendees
-                      </span>
-                    </div>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {format(new Date(event.date_time), 'MMM d, yyyy • h:mm a')}
+                    </span>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Created by: {event.profiles?.first_name} {event.profiles?.last_name} 
-                      ({event.profiles?.email})
+                  
+                  {(event.restaurants?.name || event.location_name) && (
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-foreground truncate">
+                          {event.restaurants?.name || event.location_name}
+                        </div>
+                        {(event.restaurants?.full_address || event.location_address) && (
+                          <div className="text-xs text-muted-foreground line-clamp-2">
+                            {event.restaurants?.full_address || event.location_address}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4 shrink-0" />
+                    <span>
+                      {event.rsvps?.length || 0} / {event.max_attendees} attendees
+                    </span>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Created by: {event.profiles?.first_name} {event.profiles?.last_name}
                     </p>
                   </div>
                 </CardContent>

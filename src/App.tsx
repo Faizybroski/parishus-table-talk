@@ -17,6 +17,7 @@ import Subscription from "./pages/Subscription";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
+import AdminEditEvent from "./pages/admin/AdminEditEvent";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCrossedPaths from "./pages/admin/AdminCrossedPaths";
 import AdminRSVPs from "./pages/admin/AdminRSVPs";
@@ -159,6 +160,14 @@ const App = () => (
                 element={
                   <ProtectedAdminRoute>
                     <AdminCreateEvent />
+                  </ProtectedAdminRoute>
+                }
+              />
+              <Route
+                path="/admin/events/edit/:id"
+                element={
+                  <ProtectedAdminRoute>
+                    <AdminEditEvent />
                   </ProtectedAdminRoute>
                 }
               />
