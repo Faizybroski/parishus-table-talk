@@ -5,9 +5,10 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, MapPin, Users, MoreHorizontal, Eye, Trash2, Plus, Edit, Building2 } from 'lucide-react';
+import { Calendar, MapPin, Users, MoreHorizontal, Eye, Trash2, Plus, Edit, Building2, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,7 @@ const AdminEvents = () => {
   const { profile } = useProfile();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchEvents();
@@ -137,6 +139,15 @@ const AdminEvents = () => {
     }
   };
 
+  const filteredEvents = events.filter(event =>
+    event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.location_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (event.restaurants?.name && event.restaurants.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (event.profiles?.first_name && event.profiles.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (event.profiles?.last_name && event.profiles.last_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) {
     return (
       <div className="p-8">
@@ -165,17 +176,46 @@ const AdminEvents = () => {
           </Button>
         </div>
 
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search events by name, description, location, restaurant, or creator..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.length === 0 ? (
+          {filteredEvents.length === 0 ? (
             <div className="col-span-full">
               <Card>
                 <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground">No events found</p>
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    {searchTerm ? 'No events match your search' : 'No events found'}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm 
+                      ? 'Try adjusting your search criteria' 
+                      : 'No events have been created yet'
+                    }
+                  </p>
+                  {!searchTerm && (
+                    <Button 
+                      onClick={() => navigate('/admin/events/create')}
+                      className="bg-peach-gold hover:bg-peach-gold/90"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Event
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
           ) : (
-            events.map((event) => (
+            filteredEvents.map((event) => (
               <Card key={event.id} className="group hover:shadow-lg transition-shadow duration-200">
                 <div className="relative">
                   {event.cover_photo_url && (
