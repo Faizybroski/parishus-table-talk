@@ -273,89 +273,128 @@ const CrossedPaths = () => {
           )}
         </div>
 
-        {/* Profile Modal */}
+        {/* Enhanced Profile Modal */}
         <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>User Profile</DialogTitle>
+              <DialogTitle className="text-xl font-bold">User Profile</DialogTitle>
             </DialogHeader>
             {selectedUserProfile && (
               <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-16 w-16">
+                {/* Header Section with Photo and Basic Info */}
+                <div className="flex flex-col items-center space-y-4 p-6 bg-gradient-to-br from-peach-gold/10 to-background rounded-lg border">
+                  <Avatar className="h-24 w-24 ring-4 ring-peach-gold/20">
                     <AvatarImage src={selectedUserProfile.profile_photo_url} />
-                    <AvatarFallback className="bg-peach-gold text-background">
+                    <AvatarFallback className="bg-peach-gold text-background text-2xl font-bold">
                       {selectedUserProfile.first_name?.[0]}
                       {selectedUserProfile.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-foreground">
                       {selectedUserProfile.first_name} {selectedUserProfile.last_name}
                     </h3>
                     {selectedUserProfile.job_title && (
-                      <p className="text-muted-foreground">{selectedUserProfile.job_title}</p>
+                      <p className="text-lg text-muted-foreground font-medium mt-1">
+                        {selectedUserProfile.job_title}
+                      </p>
                     )}
                     {selectedUserProfile.location_city && (
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {selectedUserProfile.location_city}
+                      <div className="flex items-center justify-center text-muted-foreground mt-2">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span className="text-sm">{selectedUserProfile.location_city}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                {/* Detailed Information Cards */}
+                <div className="grid gap-4">
                   {selectedUserProfile.dining_style && (
-                    <div className="flex items-start space-x-3">
-                      <Utensils className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="font-medium text-foreground">Dining Style</p>
-                        <p className="text-muted-foreground capitalize">
-                          {selectedUserProfile.dining_style.replace('_', ' ')}
-                        </p>
+                    <Card className="p-4 bg-card border-border">
+                      <div className="flex items-start space-x-3">
+                        <div className="p-2 bg-peach-gold/10 rounded-lg">
+                          <Utensils className="h-5 w-5 text-peach-gold" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground text-sm uppercase tracking-wide">
+                            Dining Style
+                          </p>
+                          <p className="text-foreground text-lg font-medium capitalize mt-1">
+                            {selectedUserProfile.dining_style.replace('_', ' ')}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    </Card>
                   )}
 
                   {selectedUserProfile.dietary_preferences && selectedUserProfile.dietary_preferences.length > 0 && (
-                    <div className="flex items-start space-x-3">
-                      <Heart className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="font-medium text-foreground">Dietary Preferences</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {selectedUserProfile.dietary_preferences.map((pref, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {pref.replace('_', ' ')}
-                            </Badge>
-                          ))}
+                    <Card className="p-4 bg-card border-border">
+                      <div className="flex items-start space-x-3">
+                        <div className="p-2 bg-peach-gold/10 rounded-lg">
+                          <Heart className="h-5 w-5 text-peach-gold" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground text-sm uppercase tracking-wide mb-2">
+                            Dietary Preferences
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedUserProfile.dietary_preferences.map((pref, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="secondary" 
+                                className="bg-peach-gold/10 text-peach-gold border-peach-gold/20 hover:bg-peach-gold/20 px-3 py-1"
+                              >
+                                {pref.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   )}
 
                   {selectedUserProfile.gender_identity && (
-                    <div className="flex items-start space-x-3">
-                      <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="font-medium text-foreground">Gender Identity</p>
-                        <p className="text-muted-foreground capitalize">
-                          {selectedUserProfile.gender_identity.replace('_', ' ')}
-                        </p>
+                    <Card className="p-4 bg-card border-border">
+                      <div className="flex items-start space-x-3">
+                        <div className="p-2 bg-peach-gold/10 rounded-lg">
+                          <User className="h-5 w-5 text-peach-gold" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground text-sm uppercase tracking-wide">
+                            Gender Identity
+                          </p>
+                          <p className="text-foreground text-lg font-medium capitalize mt-1">
+                            {selectedUserProfile.gender_identity.replace('_', ' ')}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    </Card>
                   )}
                 </div>
 
-                <Button 
-                  onClick={() => {
-                    setShowProfileModal(false);
-                    createPrivateEvent(selectedUserProfile.user_id);
-                  }}
-                  className="w-full bg-peach-gold hover:bg-peach-gold/90 text-background"
-                >
-                  Invite to Private Dinner
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex flex-col space-y-3 pt-4">
+                  <Button 
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      createPrivateEvent(selectedUserProfile.user_id);
+                    }}
+                    className="w-full bg-peach-gold hover:bg-peach-gold/90 text-background font-semibold py-3 text-lg"
+                    size="lg"
+                  >
+                    <Utensils className="h-5 w-5 mr-2" />
+                    Invite to Private Dinner
+                  </Button>
+                  <Button 
+                    onClick={() => setShowProfileModal(false)}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    Close Profile
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
