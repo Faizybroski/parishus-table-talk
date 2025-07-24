@@ -18,8 +18,6 @@ const EventEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -28,7 +26,7 @@ const EventEdit = () => {
     time: '',
     location_name: '',
     location_address: '',
-    restaurant_id: '',
+    
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -36,32 +34,6 @@ const EventEdit = () => {
     rsvp_deadline_time: ''
   });
 
-  // Fetch restaurants directly
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        setRestaurantsLoading(true);
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select('*')
-          .order('name');
-        
-        if (error) {
-          console.error('Error fetching restaurants:', error);
-          setRestaurants([]);
-        } else {
-          setRestaurants(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching restaurants:', error);
-        setRestaurants([]);
-      } finally {
-        setRestaurantsLoading(false);
-      }
-    };
-
-    fetchRestaurants();
-  }, []);
 
   
 
@@ -107,7 +79,7 @@ const EventEdit = () => {
         time: eventDate.toTimeString().slice(0, 5),
         location_name: data.location_name || '',
         location_address: data.location_address || '',
-        restaurant_id: data.restaurant_id || '',
+        
         max_attendees: data.max_attendees || 10,
         dining_style: data.dining_style || '',
         dietary_theme: data.dietary_theme || '',
@@ -144,7 +116,7 @@ const EventEdit = () => {
         date_time: dateTime.toISOString(),
         location_name: formData.location_name,
         location_address: formData.location_address,
-        restaurant_id: formData.restaurant_id || null,
+        
         max_attendees: formData.max_attendees,
         dining_style: formData.dining_style as any || null,
         dietary_theme: formData.dietary_theme as any || null,
@@ -329,28 +301,6 @@ const EventEdit = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="restaurant_id">Restaurant (Optional)</Label>
-                <Select value={formData.restaurant_id} onValueChange={(value) => handleInputChange('restaurant_id', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a restaurant or leave blank for custom venue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                    {!restaurantsLoading && restaurants.length > 0 ? (
-                      restaurants.map((restaurant) => (
-                        <SelectItem key={restaurant.id} value={restaurant.id}>
-                          {restaurant.name} - {restaurant.city}, {restaurant.country}
-                        </SelectItem>
-                      ))
-                    ) : restaurantsLoading ? (
-                      <SelectItem value="" disabled>Loading restaurants...</SelectItem>
-                    ) : (
-                      <SelectItem value="" disabled>No restaurants available</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
               
               <div>
                 <Label htmlFor="location_name">Venue Name *</Label>

@@ -17,8 +17,6 @@ import { useNavigate } from 'react-router-dom';
 const CreateEvent = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,7 +24,7 @@ const CreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
-    restaurant_id: '',
+    
     max_attendees: 10,
     dining_style: '',
     dietary_theme: '',
@@ -43,41 +41,6 @@ const CreateEvent = () => {
   
   const navigate = useNavigate();
 
-  // Fetch restaurants directly
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        setRestaurantsLoading(true);
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select('*')
-          .order('name');
-        
-        if (error) {
-          console.error('Error fetching restaurants:', error);
-          setRestaurants([]);
-        } else {
-          setRestaurants(data || []);
-          
-          // Alert all restaurant names
-          if (data && data.length > 0) {
-            const restaurantNames = data.map(restaurant => restaurant.name).join(', ');
-            alert(`Available restaurants: ${restaurantNames}`);
-          } else {
-            alert('No restaurants found');
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching restaurants:', error);
-        setRestaurants([]);
-        alert('Error loading restaurants');
-      } finally {
-        setRestaurantsLoading(false);
-      }
-    };
-
-    fetchRestaurants();
-  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -168,7 +131,7 @@ const CreateEvent = () => {
           date_time: dateTime.toISOString(),
           location_name: formData.location_name,
           location_address: formData.location_address,
-          restaurant_id: formData.restaurant_id || null,
+          
           max_attendees: formData.max_attendees,
           dining_style: formData.dining_style || null,
           dietary_theme: formData.dietary_theme || null,
@@ -341,28 +304,6 @@ const CreateEvent = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant_id">Restaurant (Optional)</Label>
-                  <Select value={formData.restaurant_id} onValueChange={(value) => handleInputChange('restaurant_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a restaurant or leave blank for custom venue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Custom Venue (No Restaurant)</SelectItem>
-                      {!restaurantsLoading && restaurants.length > 0 ? (
-                        restaurants.map((restaurant) => (
-                          <SelectItem key={restaurant.id} value={restaurant.id}>
-                            {restaurant.name} - {restaurant.city}, {restaurant.country}
-                          </SelectItem>
-                        ))
-                      ) : restaurantsLoading ? (
-                        <SelectItem value="" disabled>Loading restaurants...</SelectItem>
-                      ) : (
-                        <SelectItem value="" disabled>No restaurants available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="location_name">Venue Name *</Label>
