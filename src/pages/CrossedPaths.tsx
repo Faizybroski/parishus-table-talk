@@ -95,11 +95,28 @@ const CrossedPaths = () => {
           const locations = logData?.map(log => log.restaurant_name).filter(Boolean) || [];
           const totalCrosses = logData?.reduce((sum, log) => sum + (log.cross_count || 1), 0) || 1;
 
+          // Create location_details array with proper structure
+          const locationDetails = logData?.reduce((acc, log) => {
+            if (!log.restaurant_name) return acc;
+            
+            const existing = acc.find(item => item.name === log.restaurant_name);
+            if (existing) {
+              existing.cross_count += log.cross_count || 1;
+            } else {
+              acc.push({
+                name: log.restaurant_name,
+                cross_count: log.cross_count || 1
+              });
+            }
+            return acc;
+          }, [] as Array<{ name: string; cross_count: number }>) || [];
+
           return {
             ...path,
             matched_user: path.user1_id === profile.id ? path.user2 : path.user1,
             total_crosses: totalCrosses,
-            locations: [...new Set(locations)] // Remove duplicates
+            locations: [...new Set(locations)], // Remove duplicates
+            location_details: locationDetails
           };
         })
       );
