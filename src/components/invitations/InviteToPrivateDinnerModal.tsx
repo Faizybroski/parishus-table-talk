@@ -29,6 +29,11 @@ interface CrossedPath {
   };
   total_crosses: number;
   locations: string[];
+  location_details?: Array<{
+    name: string;
+    address?: string;
+    cross_count: number;
+  }>;
 }
 
 interface InviteToPrivateDinnerModalProps {
@@ -44,12 +49,13 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
   crossedPath,
   currentUserId
 }) => {
-  const [venueOption, setVenueOption] = useState<'revisit' | 'new'>('revisit');
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>('');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('19:00');
   const [loading, setLoading] = useState(false);
+  const [showDateTime, setShowDateTime] = useState(false);
 
   // Set default date to next Thursday at 7 PM
   useEffect(() => {
@@ -84,24 +90,40 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
     }
   };
 
+  const handleLocationSelect = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    if (locationId === 'new') {
+      setShowDateTime(true);
+    } else {
+      setShowDateTime(false);
+    }
+  };
+
   const handleSendInvite = async () => {
-    if (!crossedPath || !selectedDate) return;
+    if (!crossedPath || !selectedLocationId) return;
+    
+    // For new spots, require date selection
+    if (selectedLocationId === 'new' && !selectedDate) return;
 
     setLoading(true);
     try {
-      const eventDateTime = new Date(selectedDate);
+      const eventDateTime = new Date(selectedDate || new Date());
       const [hours, minutes] = selectedTime.split(':');
       eventDateTime.setHours(parseInt(hours), parseInt(minutes));
 
       let restaurantName = '';
       let restaurantId = null;
 
-      if (venueOption === 'revisit' && crossedPath.locations.length > 0) {
-        restaurantName = crossedPath.locations[0];
-      } else if (venueOption === 'new' && selectedRestaurant) {
+      if (selectedLocationId === 'new' && selectedRestaurant) {
         const restaurant = restaurants.find(r => r.id === selectedRestaurant);
         restaurantName = restaurant?.name || '';
         restaurantId = selectedRestaurant;
+      } else if (selectedLocationId !== 'new') {
+        // Find the selected location from crossed paths
+        const locationIndex = parseInt(selectedLocationId);
+        if (crossedPath.locations[locationIndex]) {
+          restaurantName = crossedPath.locations[locationIndex];
+        }
       }
 
       // Create private event
@@ -195,47 +217,49 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
-          {/* Venue Selection */}
+          {/* Step 1: Location Selection */}
           <div>
             <Label className="text-lg font-semibold mb-4 block">
-              Where would you like to meet?
+              Step 1: Where would you like to meet?
             </Label>
             
-            <RadioGroup value={venueOption} onValueChange={(value: 'revisit' | 'new') => setVenueOption(value)}>
-              {/* Option 1: Revisit Restaurant */}
-              {crossedPath?.locations.length > 0 && (
-                <Card className={`cursor-pointer transition-colors ${venueOption === 'revisit' ? 'ring-2 ring-peach-gold' : ''}`}>
+            <RadioGroup value={selectedLocationId} onValueChange={handleLocationSelect}>
+              {/* Display all crossed-path locations as radio cards */}
+              {crossedPath?.locations.map((location, index) => (
+                <Card key={index} className={`cursor-pointer transition-colors ${selectedLocationId === index.toString() ? 'ring-2 ring-peach-gold' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="revisit" id="revisit" />
-                      <Label htmlFor="revisit" className="cursor-pointer flex-1">
+                      <RadioGroupItem value={index.toString()} id={`location-${index}`} />
+                      <Label htmlFor={`location-${index}`} className="cursor-pointer flex-1">
                         <div className="flex items-center space-x-2">
                           <div className="p-2 bg-green-100 rounded-lg">
                             <Utensils className="h-5 w-5 text-green-600" />
                           </div>
                           <div>
-                            <p className="font-semibold">✅ Revisit {crossedPath.locations[0]}</p>
-                            <p className="text-sm text-muted-foreground">Where you crossed paths</p>
+                            <p className="font-semibold">{location}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Crossed {crossedPath.total_crosses} time{crossedPath.total_crosses !== 1 ? 's' : ''}
+                            </p>
                           </div>
                         </div>
                       </Label>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              ))}
 
-              {/* Option 2: New Restaurant */}
-              <Card className={`cursor-pointer transition-colors ${venueOption === 'new' ? 'ring-2 ring-peach-gold' : ''}`}>
+              {/* Select a New Spot option */}
+              <Card className={`cursor-pointer transition-colors ${selectedLocationId === 'new' ? 'ring-2 ring-peach-gold' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="new" id="new" />
-                    <Label htmlFor="new" className="cursor-pointer flex-1">
+                    <RadioGroupItem value="new" id="new-spot" />
+                    <Label htmlFor="new-spot" className="cursor-pointer flex-1">
                       <div className="flex items-center space-x-2">
                         <div className="p-2 bg-blue-100 rounded-lg">
                           <MapPin className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold">🔄 Let's Find a New Spot</p>
+                          <p className="font-semibold">🔄 Select a New Spot</p>
                           <p className="text-sm text-muted-foreground">Choose from available restaurants</p>
                         </div>
                       </div>
@@ -246,8 +270,8 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
             </RadioGroup>
           </div>
 
-          {/* Restaurant Dropdown for New Venue */}
-          {venueOption === 'new' && (
+          {/* Restaurant Dropdown for New Spot */}
+          {selectedLocationId === 'new' && (
             <div>
               <Label htmlFor="restaurant">Select Restaurant</Label>
               <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
@@ -268,66 +292,84 @@ const InviteToPrivateDinnerModal: React.FC<InviteToPrivateDinnerModalProps> = ({
             </div>
           )}
 
-          {/* Date and Time Selection for New Venue */}
-          {venueOption === 'new' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Date Picker */}
-              <div>
-                <Label>Select Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+          {/* Step 2: Date and Time Selection */}
+          {(selectedLocationId === 'new' || showDateTime) && (
+            <div>
+              <Label className="text-lg font-semibold mb-4 block">
+                Step 2: Select Date & Time {selectedLocationId !== 'new' && '(Optional)'}
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date Picker */}
+                <div>
+                  <Label>Select Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-              {/* Time Picker */}
-              <div>
-                <Label>Select Time</Label>
-                <Select value={selectedTime} onValueChange={setSelectedTime}>
-                  <SelectTrigger>
-                    <Clock className="mr-2 h-4 w-4" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {format(new Date(`2000-01-01T${time}`), 'h:mm a')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Time Picker */}
+                <div>
+                  <Label>Select Time</Label>
+                  <Select value={selectedTime} onValueChange={setSelectedTime}>
+                    <SelectTrigger>
+                      <Clock className="mr-2 h-4 w-4" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {format(new Date(`2000-01-01T${time}`), 'h:mm a')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Send Invite Button */}
+          {/* Optional Date/Time toggle for old locations */}
+          {selectedLocationId !== '' && selectedLocationId !== 'new' && !showDateTime && (
+            <div className="text-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDateTime(true)}
+                className="text-sm"
+              >
+                📅 Choose different date & time (optional)
+              </Button>
+            </div>
+          )}
+
+          {/* Step 3: Send Invite Button */}
           <div className="flex justify-end space-x-3 pt-4">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button 
               onClick={handleSendInvite}
-              disabled={loading || (venueOption === 'new' && !selectedRestaurant)}
+              disabled={loading || !selectedLocationId || (selectedLocationId === 'new' && !selectedRestaurant)}
               className="bg-peach-gold hover:bg-peach-gold/90 text-background"
             >
               {loading ? 'Sending...' : '✉️ Send Invite'}
