@@ -16,6 +16,7 @@ interface CrossedPath {
   is_active: boolean;
   user1_id: string;
   user2_id: string;
+  cross_count?: number;
   matched_user: {
     id: string;
     first_name: string;
@@ -178,7 +179,7 @@ const CrossedPaths = () => {
                               {path.matched_user.job_title}
                             </p>
                           )}
-                          <div className="flex items-center space-x-4 mt-2">
+                           <div className="flex items-center space-x-4 mt-2">
                             <div className="flex items-center text-sm text-muted-foreground">
                               <MapPin className="h-4 w-4 mr-1" />
                               {path.location_name || 'Unknown location'}
@@ -188,6 +189,12 @@ const CrossedPaths = () => {
                               {new Date(path.matched_at).toLocaleDateString()}
                             </div>
                           </div>
+                           {/* Show crossing count */}
+                           <div className="mt-2">
+                             <Badge variant="outline" className="text-xs">
+                               Crossed paths {path.cross_count || 1} time{(path.cross_count || 1) !== 1 ? 's' : ''}
+                             </Badge>
+                           </div>
                           {path.matched_user.location_city && (
                             <Badge variant="secondary" className="mt-2">
                               {path.matched_user.location_city}

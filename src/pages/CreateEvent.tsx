@@ -33,7 +33,8 @@ const CreateEvent = () => {
     rsvp_deadline_time: '',
     tags: [] as string[],
     cover_photo_url: '',
-    is_mystery_dinner: false
+    is_mystery_dinner: false,
+    guest_invitation_type: 'manual'
   });
   const [newTag, setNewTag] = useState('');
   
@@ -155,7 +156,9 @@ const CreateEvent = () => {
           cover_photo_url: formData.cover_photo_url,
           is_mystery_dinner: formData.is_mystery_dinner,
           description: formData.description,
-          name: formData.name
+          name: formData.name,
+          guest_invitation_type: formData.guest_invitation_type,
+          auto_suggest_crossed_paths: formData.guest_invitation_type === 'crossed_paths'
         } as any)
         .select()
         .single();
@@ -437,6 +440,47 @@ const CreateEvent = () => {
                     </span>
                   </Button>
                 </label>
+              </CardContent>
+            </Card>
+
+            {/* Guest Invitation Type Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-5 w-5" />
+                  <span>Guest Invitation Type</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="manual"
+                      name="guest_invitation_type"
+                      value="manual"
+                      checked={formData.guest_invitation_type === 'manual'}
+                      onChange={(e) => handleInputChange('guest_invitation_type', e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="manual">Manually Invite Guests</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="crossed_paths"
+                      name="guest_invitation_type"
+                      value="crossed_paths"
+                      checked={formData.guest_invitation_type === 'crossed_paths'}
+                      onChange={(e) => handleInputChange('guest_invitation_type', e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="crossed_paths">Suggest from Crossed Paths</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Crossed Paths suggests users you've recently visited the same restaurants with
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

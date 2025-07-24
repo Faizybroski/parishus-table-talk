@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Edit, Save, X, CreditCard } from 'lucide-react';
+import { Camera, Edit, Save, X, CreditCard, Shield } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,6 +30,9 @@ const Profile = () => {
     dietary_preferences: [] as ('vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free' | 'keto' | 'paleo' | 'halal' | 'kosher' | 'no_restrictions')[],
     gender_identity: '' as 'male' | 'female' | 'non_binary' | 'prefer_not_to_say' | ''
   });
+  const [privacySettings, setPrivacySettings] = useState({
+    allow_crossed_paths_tracking: true
+  });
   const { user, signOut } = useAuth();
   const { profile, refetch } = useProfile();
   const navigate = useNavigate();
@@ -45,6 +49,9 @@ const Profile = () => {
         dining_style: profile.dining_style || '',
         dietary_preferences: profile.dietary_preferences || [],
         gender_identity: profile.gender_identity || ''
+      });
+      setPrivacySettings({
+        allow_crossed_paths_tracking: profile.allow_crossed_paths_tracking ?? true
       });
     }
   }, [profile]);
@@ -445,6 +452,51 @@ const Profile = () => {
                     {profile.gender_identity ? profile.gender_identity.replace('_', ' ') : 'Not set'}
                   </p>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>Privacy Settings</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Crossed Paths Tracking</h3>
+                  <p className="text-muted-foreground">
+                    Allow Lovable to track your restaurant visits to enable Crossed Paths suggestions
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.allow_crossed_paths_tracking}
+                  onCheckedChange={async (checked) => {
+                    setPrivacySettings(prev => ({ ...prev, allow_crossed_paths_tracking: checked }));
+                    try {
+                      const { error } = await supabase
+                        .from('profiles')
+                        .update({ allow_crossed_paths_tracking: checked })
+                        .eq('id', profile.id);
+                      
+                      if (error) throw error;
+                      
+                      toast({
+                        title: "Privacy settings updated",
+                        description: `Crossed paths tracking ${checked ? 'enabled' : 'disabled'}`,
+                      });
+                    } catch (error: any) {
+                      setPrivacySettings(prev => ({ ...prev, allow_crossed_paths_tracking: !checked }));
+                      toast({
+                        title: "Error",
+                        description: "Failed to update privacy settings",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
