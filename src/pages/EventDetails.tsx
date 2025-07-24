@@ -225,14 +225,14 @@ const EventDetails = () => {
             event_id: eventId,
             user_id: userProfileId,
             reservation_type: 'standard',
-            reservation_status: 'pending'
+            reservation_status: 'confirmed'
           });
 
         if (reservationError) throw reservationError;
 
         toast({
           title: "RSVP Confirmed!",
-          description: "You're now attending this event. Your reservation is pending confirmation.",
+          description: "You're now attending this event.",
         });
       }
 

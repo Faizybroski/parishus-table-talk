@@ -17,12 +17,11 @@ import {
   UserCheck,
   Edit,
   Trash2,
-  Eye,
-  CreditCard
+  Eye
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import PaymentModal from '@/components/payment/PaymentModal';
+
 
 interface Event {
   id: string;
@@ -58,8 +57,6 @@ const ExploreEvents = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -118,16 +115,12 @@ const ExploreEvents = () => {
 
       if (error) throw error;
 
-      // Filter out events that user has already RSVPed to
+      // Show all events with RSVP counts and user RSVP status
       const eventsWithCounts = data?.map(event => ({
         ...event,
         rsvp_count: event.rsvps?.filter(r => r.status === 'confirmed').length || 0,
         user_rsvp: event.rsvps?.filter(r => r.user_id === currentProfileId) || []
-      })).filter(event => {
-        // Show only events that user has NOT RSVPed to
-        const hasRSVP = event.rsvps?.some(r => r.user_id === currentProfileId && r.status === 'confirmed');
-        return !hasRSVP;
-      }) || [];
+      })) || [];
 
       setEvents(eventsWithCounts);
     } catch (error: any) {
@@ -188,23 +181,41 @@ const ExploreEvents = () => {
         });
       }
     } else {
-      // Open payment modal for new RSVP
-      setSelectedEvent(event);
-      setShowPaymentModal(true);
+      // Add RSVP directly with confirmation
+      const confirmed = window.confirm("Are you sure you want to RSVP to this event?");
+      if (!confirmed) return;
+
+      try {
+        if (!userProfileId) {
+          throw new Error('Profile not found');
+        }
+
+        const { error } = await supabase
+          .from('rsvps')
+          .insert({
+            event_id: eventId,
+            user_id: userProfileId,
+            status: 'confirmed'
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "RSVP confirmed!",
+          description: "You're now attending this event",
+        });
+
+        fetchEvents();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add RSVP",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const handlePaymentSuccess = () => {
-    toast({
-      title: "Payment successful!",
-      description: "Your RSVP has been confirmed. Check your email for details.",
-    });
-    
-    // Refresh events data
-    setTimeout(() => {
-      fetchEvents();
-    }, 2000);
-  };
 
   const deleteEvent = async (eventId: string) => {
     try {
@@ -420,8 +431,8 @@ const ExploreEvents = () => {
                         </>
                       ) : (
                         <>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Pay & RSVP
+                          <Heart className="h-4 w-4 mr-2" />
+                          RSVP
                         </>
                       )}
                     </Button>
@@ -481,15 +492,6 @@ const ExploreEvents = () => {
           </div>
         </div>
 
-        {/* Payment Modal */}
-        {selectedEvent && (
-          <PaymentModal
-            isOpen={showPaymentModal}
-            onClose={() => setShowPaymentModal(false)}
-            event={selectedEvent}
-            onPaymentSuccess={handlePaymentSuccess}
-          />
-        )}
 
       </div>
     </div>
