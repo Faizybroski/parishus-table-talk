@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Search, Filter, Clock, Building, Plus } from 'lucide-react';
+import { MapPin, Calendar, Search, Filter, Clock, Building, Plus, MoreHorizontal } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RestaurantVisitTracker from '@/components/restaurants/RestaurantVisitTracker';
+import VisitEditModal from '@/components/restaurants/VisitEditModal';
+import VisitDeleteModal from '@/components/restaurants/VisitDeleteModal';
 
 interface RestaurantVisit {
   id: string;
@@ -284,6 +286,10 @@ const MyVisits = () => {
                             Verified Restaurant
                           </Badge>
                         )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <VisitEditModal visit={visit} onVisitUpdated={handleVisitTracked} />
+                        <VisitDeleteModal visit={visit} onVisitDeleted={handleVisitTracked} />
                       </div>
                     </div>
                   </CardContent>
