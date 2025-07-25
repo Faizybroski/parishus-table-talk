@@ -59,21 +59,21 @@ const CrossedPaths = () => {
     if (!profile) return;
 
     try {
-      // First get basic crossed paths
+      // First get basic crossed paths using proper foreign key joins
       const { data: crossedPathsData, error } = await supabase
         .from('crossed_paths')
         .select(`
           *,
-          user1:profiles!user1_id(
+          user1:profiles!crossed_paths_user1_id_fkey(
             id, user_id, first_name, last_name, profile_photo_url, job_title, 
             location_city, dining_style, dietary_preferences, gender_identity
           ),
-          user2:profiles!user2_id(
+          user2:profiles!crossed_paths_user2_id_fkey(
             id, user_id, first_name, last_name, profile_photo_url, job_title, 
             location_city, dining_style, dietary_preferences, gender_identity
           )
         `)
-        .or(`user1_id.eq.${profile.id},user2_id.eq.${profile.id}`)
+        .or(`user1_id.eq.${profile.user_id},user2_id.eq.${profile.user_id}`)
         .eq('is_active', true)
         .order('matched_at', { ascending: false });
 
@@ -86,7 +86,7 @@ const CrossedPaths = () => {
       // Now get aggregated data from crossed_paths_log for each pair
       const enrichedPaths = await Promise.all(
         (crossedPathsData || []).map(async (path: any) => {
-          const otherUserId = path.user1_id === profile.id ? path.user2.user_id : path.user1.user_id;
+          const otherUserId = path.user1_id === profile.user_id ? path.user2.user_id : path.user1.user_id;
           const userAId = profile.user_id < otherUserId ? profile.user_id : otherUserId;
           const userBId = profile.user_id < otherUserId ? otherUserId : profile.user_id;
 
@@ -118,7 +118,7 @@ const CrossedPaths = () => {
 
           return {
             ...path,
-            matched_user: path.user1_id === profile.id ? path.user2 : path.user1,
+            matched_user: path.user1_id === profile.user_id ? path.user2 : path.user1,
             total_crosses: totalCrosses,
             locations: [...new Set(locations)], // Remove duplicates
             location_details: locationDetails

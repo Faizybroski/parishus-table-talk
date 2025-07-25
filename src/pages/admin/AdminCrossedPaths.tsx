@@ -65,15 +65,15 @@ const AdminCrossedPaths = () => {
 
   const fetchAnalytics = async () => {
     try {
-      // Fetch crossed paths with user profiles - using direct user_id lookups
+      // Fetch crossed paths with user profiles using proper foreign key joins
       const { data: pathsData, error: pathsError } = await supabase
         .from('crossed_paths_log')
         .select(`
           *,
-          user_a:profiles!user_a_id(
+          user_a:profiles!crossed_paths_log_user_a_id_fkey(
             user_id, first_name, last_name, profile_photo_url, email
           ),
-          user_b:profiles!user_b_id(
+          user_b:profiles!crossed_paths_log_user_b_id_fkey(
             user_id, first_name, last_name, profile_photo_url, email
           )
         `)

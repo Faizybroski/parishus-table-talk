@@ -176,7 +176,22 @@ export type Database = {
           user_a_id?: string
           user_b_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crossed_paths_log_user_a_id_fkey"
+            columns: ["user_a_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "crossed_paths_log_user_b_id_fkey"
+            columns: ["user_b_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       event_invitations: {
         Row: {
