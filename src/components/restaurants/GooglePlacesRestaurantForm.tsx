@@ -25,6 +25,7 @@ declare global {
   interface Window {
     google: any;
     initMap: () => void;
+    initGoogleMaps: () => void;
   }
 }
 
@@ -49,17 +50,31 @@ const GooglePlacesRestaurantForm: React.FC<GooglePlacesRestaurantFormProps> = ({
 
   useEffect(() => {
     const loadGoogleMapsAPI = () => {
-      if (window.google && window.google.maps) {
+      console.log('🔄 Starting Google Maps API load...');
+      
+      if (window.google && window.google.maps && window.google.maps.places) {
+        console.log('✅ Google Maps API already loaded');
         setIsApiLoaded(true);
         return;
       }
 
+      console.log('📦 Loading Google Maps API script...');
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDMyPeHRZWHMc89UEzXgHPqk0mjTmwCrMY&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDMyPeHRZWHMc89UEzXgHPqk0mjTmwCrMY&libraries=places&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
-      script.onload = () => setIsApiLoaded(true);
-      script.onerror = () => toast.error('Failed to load Google Maps API');
+      
+      // Create a global callback function
+      window.initGoogleMaps = () => {
+        console.log('✅ Google Maps API loaded successfully');
+        setIsApiLoaded(true);
+      };
+      
+      script.onerror = (error) => {
+        console.error('❌ Failed to load Google Maps API:', error);
+        toast.error('Failed to load Google Maps API');
+      };
+      
       document.head.appendChild(script);
     };
 
@@ -67,72 +82,104 @@ const GooglePlacesRestaurantForm: React.FC<GooglePlacesRestaurantFormProps> = ({
   }, []);
 
   useEffect(() => {
+    console.log(`🔍 Checking autocomplete initialization. API loaded: ${isApiLoaded}, Input ref: ${!!inputRef.current}, Existing autocomplete: ${!!autocompleteRef.current}`);
+    
     if (isApiLoaded && inputRef.current && !autocompleteRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        inputRef.current,
-        {
+      console.log('🚀 Initializing Google Places Autocomplete...');
+      
+      try {
+        // Add a visual indicator to the input
+        inputRef.current.style.border = '2px solid green';
+        inputRef.current.placeholder = 'Google Places loaded! Start typing...';
+        
+        const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
           types: ['establishment'],
           fields: ['name', 'formatted_address', 'address_components', 'geometry', 'place_id']
-        }
-      );
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        
-        // Debug alert to check if function is running and what data we get
-        alert(`Function is running! Place name: ${place?.name || 'No name found'}, Has geometry: ${!!place?.geometry}, Has address components: ${!!place?.address_components}`);
-        
-        console.log('Place selected:', place); // Debug log
-        
-        if (!place || !place.geometry || !place.address_components) {
-          toast.error('Please select a valid place from the dropdown');
-          return;
-        }
-
-        const addressComponents = place.address_components;
-        
-        let city = '';
-        let state = '';
-        let country = '';
-
-        // Extract address components with more comprehensive mapping
-        addressComponents.forEach((component: any) => {
-          const types = component.types;
-          
-          if (types.includes('locality') || types.includes('sublocality')) {
-            city = component.long_name;
-          } else if (types.includes('administrative_area_level_1')) {
-            state = component.long_name;
-          } else if (types.includes('country')) {
-            country = component.long_name;
-          }
-          
-          // Fallback for city if locality not found
-          if (!city && types.includes('administrative_area_level_2')) {
-            city = component.long_name;
-          }
         });
 
-        const newFormData = {
-          name: place.name || place.formatted_address?.split(',')[0] || '',
-          address: place.formatted_address || '',
-          city: city || '',
-          state: state || '',
-          country: country || '',
-          latitude: place.geometry.location.lat(),
-          longitude: place.geometry.location.lng(),
-        };
+        console.log('✅ Autocomplete created successfully');
 
-        console.log('Setting form data:', newFormData); // Debug log
-        setFormData(newFormData);
+        // Add multiple event listeners for debugging
+        autocomplete.addListener('place_changed', () => {
+          console.log('🎯 PLACE CHANGED EVENT FIRED!');
+          
+          const place = autocomplete.getPlace();
+          console.log('📍 Full place object:', place);
+          
+          // Change input border to indicate event fired
+          if (inputRef.current) {
+            inputRef.current.style.border = '2px solid blue';
+          }
+          
+          if (!place) {
+            console.warn('⚠️ No place object returned');
+            return;
+          }
+          
+          if (!place.geometry) {
+            console.warn('⚠️ No geometry in place object');
+            toast.error('Please select a valid place from the dropdown');
+            return;
+          }
+
+          if (!place.address_components) {
+            console.warn('⚠️ No address components in place object');
+            return;
+          }
+
+          console.log('📋 Address components:', place.address_components);
+
+          const addressComponents = place.address_components;
+          let city = '';
+          let state = '';
+          let country = '';
+
+          addressComponents.forEach((component: any) => {
+            const types = component.types;
+            console.log(`📋 Component: ${component.long_name}, Types: ${types.join(', ')}`);
+            
+            if (types.includes('locality') || types.includes('sublocality')) {
+              city = component.long_name;
+            } else if (types.includes('administrative_area_level_1')) {
+              state = component.long_name;
+            } else if (types.includes('country')) {
+              country = component.long_name;
+            }
+            
+            if (!city && types.includes('administrative_area_level_2')) {
+              city = component.long_name;
+            }
+          });
+
+          const newFormData = {
+            name: place.name || place.formatted_address?.split(',')[0] || '',
+            address: place.formatted_address || '',
+            city: city || '',
+            state: state || '',
+            country: country || '',
+            latitude: place.geometry.location.lat(),
+            longitude: place.geometry.location.lng(),
+          };
+
+          console.log('📝 Setting new form data:', newFormData);
+          setFormData(newFormData);
+          
+          // Visual confirmation
+          if (inputRef.current) {
+            inputRef.current.style.border = '2px solid purple';
+            inputRef.current.value = newFormData.name;
+          }
+          
+          toast.success(`Selected: ${newFormData.name}`);
+        });
+
+        autocompleteRef.current = autocomplete;
+        console.log('✅ Event listener attached successfully');
         
-        // Also update the input value to show the selected place name
-        if (inputRef.current) {
-          inputRef.current.value = newFormData.name;
-        }
-      });
-
-      autocompleteRef.current = autocomplete;
+      } catch (error) {
+        console.error('❌ Error initializing autocomplete:', error);
+        toast.error('Failed to initialize Google Places autocomplete');
+      }
     }
   }, [isApiLoaded]);
 
