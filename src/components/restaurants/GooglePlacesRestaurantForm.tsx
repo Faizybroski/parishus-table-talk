@@ -79,6 +79,9 @@ const GooglePlacesRestaurantForm: React.FC<GooglePlacesRestaurantFormProps> = ({
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         
+        // Debug alert to check if function is running and what data we get
+        alert(`Function is running! Place name: ${place?.name || 'No name found'}, Has geometry: ${!!place?.geometry}, Has address components: ${!!place?.address_components}`);
+        
         console.log('Place selected:', place); // Debug log
         
         if (!place || !place.geometry || !place.address_components) {
