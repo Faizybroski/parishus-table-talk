@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, MapPin, Edit, Trash2, Search, User } from 'lucide-react';
 import { toast } from 'sonner';
-import RestaurantForm from '@/components/restaurants/RestaurantForm';
+import GooglePlacesRestaurantForm from '@/components/restaurants/GooglePlacesRestaurantForm';
 
 const Restaurants = () => {
   const { restaurants, loading, deleteRestaurant, canEdit, canDelete, refetch } = useRestaurants();
@@ -148,9 +148,35 @@ const Restaurants = () => {
                     {selectedRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
                   </DialogTitle>
                 </DialogHeader>
-                <RestaurantForm
-                  restaurant={selectedRestaurant}
-                  onSuccess={selectedRestaurant ? handleEditSuccess : handleCreateSuccess}
+                <GooglePlacesRestaurantForm
+                  initialData={selectedRestaurant ? {
+                    name: selectedRestaurant.name,
+                    address: selectedRestaurant.full_address,
+                    city: selectedRestaurant.city,
+                    state: selectedRestaurant.state_province,
+                    country: selectedRestaurant.country,
+                    latitude: selectedRestaurant.latitude,
+                    longitude: selectedRestaurant.longitude,
+                  } : undefined}
+                  onSubmit={async (data) => {
+                    const { createRestaurant, updateRestaurant } = useRestaurants();
+                    const restaurantData = {
+                      name: data.name,
+                      full_address: data.address,
+                      city: data.city,
+                      state_province: data.state,
+                      country: data.country,
+                      latitude: data.latitude,
+                      longitude: data.longitude,
+                    };
+                    if (selectedRestaurant) {
+                      await updateRestaurant(selectedRestaurant.id, restaurantData);
+                      handleEditSuccess();
+                    } else {
+                      await createRestaurant(restaurantData);
+                      handleCreateSuccess();
+                    }
+                  }}
                   onCancel={() => setIsDialogOpen(false)}
                 />
               </DialogContent>
@@ -192,9 +218,21 @@ const Restaurants = () => {
                   <DialogHeader>
                     <DialogTitle>Add New Restaurant</DialogTitle>
                   </DialogHeader>
-                  <RestaurantForm
-                    restaurant={null}
-                    onSuccess={handleCreateSuccess}
+                  <GooglePlacesRestaurantForm
+                    onSubmit={async (data) => {
+                      const { createRestaurant } = useRestaurants();
+                      const restaurantData = {
+                        name: data.name,
+                        full_address: data.address,
+                        city: data.city,
+                        state_province: data.state,
+                        country: data.country,
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                      };
+                      await createRestaurant(restaurantData);
+                      handleCreateSuccess();
+                    }}
                     onCancel={() => setIsDialogOpen(false)}
                   />
                 </DialogContent>
