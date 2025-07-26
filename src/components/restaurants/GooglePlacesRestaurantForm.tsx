@@ -68,49 +68,68 @@ const GooglePlacesRestaurantForm: React.FC<GooglePlacesRestaurantFormProps> = ({
 
   useEffect(() => {
     if (isApiLoaded && inputRef.current && !autocompleteRef.current) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+      const autocomplete = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
           types: ['establishment'],
-          fields: ['name', 'formatted_address', 'address_components', 'geometry']
+          fields: ['name', 'formatted_address', 'address_components', 'geometry', 'place_id']
         }
       );
 
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace();
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
         
-        if (!place || !place.geometry) {
+        console.log('Place selected:', place); // Debug log
+        
+        if (!place || !place.geometry || !place.address_components) {
           toast.error('Please select a valid place from the dropdown');
           return;
         }
 
-        const addressComponents = place.address_components || [];
+        const addressComponents = place.address_components;
         
         let city = '';
         let state = '';
         let country = '';
 
+        // Extract address components with more comprehensive mapping
         addressComponents.forEach((component: any) => {
           const types = component.types;
-          if (types.includes('locality')) {
+          
+          if (types.includes('locality') || types.includes('sublocality')) {
             city = component.long_name;
           } else if (types.includes('administrative_area_level_1')) {
             state = component.long_name;
           } else if (types.includes('country')) {
             country = component.long_name;
           }
+          
+          // Fallback for city if locality not found
+          if (!city && types.includes('administrative_area_level_2')) {
+            city = component.long_name;
+          }
         });
 
-        setFormData({
-          name: place.name || '',
+        const newFormData = {
+          name: place.name || place.formatted_address?.split(',')[0] || '',
           address: place.formatted_address || '',
-          city,
-          state,
-          country,
+          city: city || '',
+          state: state || '',
+          country: country || '',
           latitude: place.geometry.location.lat(),
           longitude: place.geometry.location.lng(),
-        });
+        };
+
+        console.log('Setting form data:', newFormData); // Debug log
+        setFormData(newFormData);
+        
+        // Also update the input value to show the selected place name
+        if (inputRef.current) {
+          inputRef.current.value = newFormData.name;
+        }
       });
+
+      autocompleteRef.current = autocomplete;
     }
   }, [isApiLoaded]);
 
