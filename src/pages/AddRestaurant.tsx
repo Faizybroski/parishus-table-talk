@@ -10,7 +10,15 @@ const AddRestaurant = () => {
   const { createRestaurant } = useRestaurants();
 
   const handleSubmit = async (data: any) => {
-    await createRestaurant(data);
+    await createRestaurant({
+      name: data.name,
+      full_address: data.address,
+      city: data.city,
+      state_province: data.state,
+      country: data.country,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    });
     navigate('/restaurants');
   };
 
