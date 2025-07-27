@@ -39,6 +39,7 @@ import EventDetails from "./pages/EventDetails";
 import EventEdit from "./pages/EventEdit";
 import Restaurants from "./pages/Restaurants";
 import AddRestaurant from "./pages/AddRestaurant";
+import EditRestaurant from "./pages/EditRestaurant";
 import MyVisits from "./pages/MyVisits";
 
 const queryClient = new QueryClient();
@@ -105,6 +106,12 @@ const App = () => (
                 <ProtectedRoute>
                   <Navigation />
                   <AddRestaurant />
+                </ProtectedRoute>
+              } />
+              <Route path="/restaurants/edit/:id" element={
+                <ProtectedRoute>
+                  <Navigation />
+                  <EditRestaurant />
                 </ProtectedRoute>
               } />
               <Route path="/crossed-paths" element={
@@ -252,6 +259,20 @@ const App = () => (
                 <ProtectedAdminRoute>
                   <AdminLayout>
                     <Restaurants />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/restaurants/add" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <AddRestaurant />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/restaurants/edit/:id" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <EditRestaurant />
                   </AdminLayout>
                 </ProtectedAdminRoute>
               } />
