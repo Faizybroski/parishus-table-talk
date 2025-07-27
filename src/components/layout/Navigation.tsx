@@ -20,7 +20,8 @@ import {
   CreditCard,
   MessageSquare,
   UtensilsCrossed,
-  MapPin
+  MapPin,
+  Plus
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
@@ -43,6 +44,7 @@ const Navigation = () => {
       { icon: Calendar, label: 'My Events', path: '/events' },
       { icon: Search, label: 'Explore', path: '/explore' },
       { icon: UtensilsCrossed, label: 'Restaurants', path: '/restaurants' },
+      { icon: Plus, label: 'Add Restaurant', path: '/restaurants/add' },
       { icon: Heart, label: 'RSVPs', path: '/rsvps' },
       { icon: MessageSquare, label: 'Feedback', path: '/feedback' },
       { icon: Star, label: 'Crossed Paths', path: '/crossed-paths' },
