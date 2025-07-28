@@ -353,7 +353,7 @@ const ModernEventsCarousel = () => {
                           size="sm"
                           className={`flex-1 ${
                             user
-                              ? rsvpStatus === 'yes'
+                              ? rsvpStatus === 'no'
                                 ? 'bg-green-600 hover:bg-green-700 text-white'
                                 : 'bg-white text-black hover:bg-white/90'
                               : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
