@@ -353,16 +353,25 @@ const ModernEventsCarousel = () => {
                           <Button
                             size="sm"
                             className={`flex-1 ${
-                            rsvpStatus === 'yes'
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-white text-black hover:bg-white/90'
+                              user
+                                ? rsvpStatus === 'yes'
+                                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                                  : 'bg-white text-black hover:bg-white/90'
+                                : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
                             }`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleRSVP(event.id);
+                              if (user) {
+                                handleRSVP(event.id);
+                              } else {
+                                navigate('/auth');
+                              }
                             }}
                           >
-                            {rsvpStatus === 'yes' ? "You're Going" : "RSVP"}
+                            {user 
+                              ? (rsvpStatus === 'yes' ? "You're Going" : "RSVP")
+                              : "Sign in to RSVP"
+                            }
                           </Button>
                         )}
                       </div>
