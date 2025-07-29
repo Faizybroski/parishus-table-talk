@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Settings, Database, Mail, Bell, Shield, Globe } from 'lucide-react';
 
 const AdminSettings = () => {
@@ -37,6 +38,10 @@ const AdminSettings = () => {
     enableFeedback: true,
     enablePayments: false,
     
+    // Stripe Settings
+    stripePublicKey: '',
+    stripeSecretKey: '',
+    
     // System Settings
     maintenanceMode: false,
     debugMode: false,
@@ -44,6 +49,34 @@ const AdminSettings = () => {
   });
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchStripeSettings();
+  }, []);
+
+  const fetchStripeSettings = async () => {
+    try {
+      const { data: stripeSettings, error } = await supabase
+        .from('system_settings')
+        .select('key, value')
+        .in('key', ['STRIPE_PUBLIC_KEY', 'STRIPE_SECRET_KEY']);
+
+      if (error) throw error;
+
+      const settingsMap = stripeSettings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      setSettings(prev => ({
+        ...prev,
+        stripePublicKey: settingsMap.STRIPE_PUBLIC_KEY || '',
+        stripeSecretKey: settingsMap.STRIPE_SECRET_KEY || ''
+      }));
+    } catch (error) {
+      console.error('Error fetching Stripe settings:', error);
+    }
+  };
 
   const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({
@@ -54,15 +87,44 @@ const AdminSettings = () => {
 
   const saveSettings = async (category: string) => {
     try {
-      // In a real implementation, you would save to the database
+      if (category === 'Stripe') {
+        // Save Stripe settings to system_settings table
+        const updates = [
+          { key: 'STRIPE_PUBLIC_KEY', value: settings.stripePublicKey },
+          { key: 'STRIPE_SECRET_KEY', value: settings.stripeSecretKey }
+        ];
+
+        for (const update of updates) {
+          const { error } = await supabase
+            .from('system_settings')
+            .upsert({
+              key: update.key,
+              value: update.value,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'key'
+            });
+
+          if (error) throw error;
+        }
+
+        // Also save the secret key to Edge Function secrets
+        if (settings.stripeSecretKey) {
+          toast({
+            title: "Important",
+            description: "Please also update STRIPE_SECRET_KEY in your Edge Function secrets for full functionality.",
+          });
+        }
+      }
+
       toast({
         title: "Success",
         description: `${category} settings saved successfully`
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to save settings",
+        description: error.message || "Failed to save settings",
         variant: "destructive"
       });
     }
@@ -79,11 +141,12 @@ const AdminSettings = () => {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="features">Features</TabsTrigger>
+          <TabsTrigger value="stripe">Stripe</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -351,6 +414,53 @@ const AdminSettings = () => {
               <div className="flex justify-end">
                 <Button onClick={() => saveSettings('Features')}>
                   Save Feature Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="stripe" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>Stripe Settings</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="stripePublicKey">Stripe Publishable Key *</Label>
+                <Input
+                  id="stripePublicKey"
+                  placeholder="pk_test_..."
+                  value={settings.stripePublicKey || ''}
+                  onChange={(e) => updateSetting('stripePublicKey', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your Stripe publishable key (safe to expose in frontend)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stripeSecretKey">Stripe Secret Key *</Label>
+                <Input
+                  id="stripeSecretKey"
+                  type="password"
+                  placeholder="sk_test_..."
+                  value={settings.stripeSecretKey || ''}
+                  onChange={(e) => updateSetting('stripeSecretKey', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your Stripe secret key (will be stored securely in Edge Function secrets)
+                </p>
+              </div>
+
+              <Separator />
+              
+              <div className="flex justify-end">
+                <Button onClick={() => saveSettings('Stripe')}>
+                  Save Stripe Settings
                 </Button>
               </div>
             </CardContent>

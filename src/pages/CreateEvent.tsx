@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, Upload, Plus, X, Users } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar, Clock, MapPin, Upload, Plus, X, Users, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
@@ -34,7 +35,9 @@ const CreateEvent = () => {
     tags: [] as string[],
     cover_photo_url: '',
     is_mystery_dinner: false,
-    guest_invitation_type: 'manual'
+    guest_invitation_type: 'manual',
+    is_paid: false,
+    event_fee: 0
   });
   const [newTag, setNewTag] = useState('');
   
@@ -158,7 +161,9 @@ const CreateEvent = () => {
           description: formData.description,
           name: formData.name,
           guest_invitation_type: formData.guest_invitation_type,
-          auto_suggest_crossed_paths: formData.guest_invitation_type === 'crossed_paths'
+          auto_suggest_crossed_paths: formData.guest_invitation_type === 'crossed_paths',
+          is_paid: formData.is_paid,
+          event_fee: formData.is_paid ? formData.event_fee : null
         } as any)
         .select()
         .single();
@@ -530,6 +535,49 @@ const CreateEvent = () => {
                     </Select>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5" />
+                  <span>Payment Settings</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="is_paid"
+                    checked={formData.is_paid}
+                    onCheckedChange={(checked) => handleInputChange('is_paid', checked)}
+                  />
+                  <Label htmlFor="is_paid">This is a paid event</Label>
+                </div>
+                
+                {formData.is_paid && (
+                  <div className="space-y-2">
+                    <Label htmlFor="event_fee">Event Fee (USD) *</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="event_fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={formData.event_fee}
+                        onChange={(e) => handleInputChange('event_fee', parseFloat(e.target.value) || 0)}
+                        className="pl-10"
+                        required={formData.is_paid}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Users will need to pay this amount to RSVP to your event
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
