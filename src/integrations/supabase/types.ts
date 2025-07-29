@@ -125,14 +125,14 @@ export type Database = {
             columns: ["user1_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "crossed_paths_user2_id_fkey"
             columns: ["user2_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -239,6 +239,7 @@ export type Database = {
             | null
           dining_style: Database["public"]["Enums"]["dining_style"] | null
           guest_invitation_type: string | null
+          guest_user_ids: string[] | null
           id: string
           is_mystery_dinner: boolean | null
           location_address: string | null
@@ -266,6 +267,7 @@ export type Database = {
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
           guest_invitation_type?: string | null
+          guest_user_ids?: string[] | null
           id?: string
           is_mystery_dinner?: boolean | null
           location_address?: string | null
@@ -293,6 +295,7 @@ export type Database = {
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
           guest_invitation_type?: string | null
+          guest_user_ids?: string[] | null
           id?: string
           is_mystery_dinner?: boolean | null
           location_address?: string | null
@@ -707,6 +710,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
     }
     Views: {
