@@ -3,8 +3,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, ChevronLeft, ChevronRight, Star, DollarSign } from 'lucide-react';
-import { EventPaymentModal } from '@/components/payment/EventPaymentModal';
+import { Calendar, Clock, MapPin, Users, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,8 +22,6 @@ type Event = {
   cover_photo_url: string | null;
   creator_id: string;
   status: string;
-  is_paid: boolean;
-  event_fee: number | null;
 };
 
 type RSVP = {
@@ -69,7 +66,7 @@ const ModernEventsCarousel = () => {
         .from('events')
         .select(`
           id, name, description, date_time, location_name, location_address,
-          max_attendees, cover_photo_url, creator_id, status, is_paid, event_fee
+          max_attendees, cover_photo_url, creator_id, status
         `)
         .eq('status', 'active')
         .gte('date_time', new Date().toISOString())
@@ -130,12 +127,7 @@ const ModernEventsCarousel = () => {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
-    // Check if this is a paid event
-    if (event.is_paid && event.event_fee && event.event_fee > 0) {
-      setSelectedEvent(event);
-      setPaymentModalOpen(true);
-      return;
-    }
+    // For now, skip payment logic since we're rebuilding subscription system
 
     const existingRSVP = rsvps.find(r => r.event_id === eventId);
     
@@ -359,14 +351,6 @@ const ModernEventsCarousel = () => {
                           </span>
                         </div>
 
-                        {event.is_paid && event.event_fee && (
-                          <div className="flex items-center gap-2 col-span-2">
-                            <DollarSign className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate font-semibold text-peach-gold">
-                              ${event.event_fee.toFixed(2)}
-                            </span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Action Buttons */}
@@ -402,7 +386,7 @@ const ModernEventsCarousel = () => {
                           }}
                         >
                           {user 
-                            ? (rsvpStatus === 'yes' ? "You're Going" : event.is_paid && event.event_fee ? `Pay $${event.event_fee.toFixed(2)} & RSVP` : "RSVP")
+                            ? (rsvpStatus === 'yes' ? "You're Going" : "RSVP")
                             : "Sign in to RSVP"
                           }
                         </Button>
@@ -416,12 +400,6 @@ const ModernEventsCarousel = () => {
         </div>
       </div>
 
-      <EventPaymentModal
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        event={selectedEvent}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };

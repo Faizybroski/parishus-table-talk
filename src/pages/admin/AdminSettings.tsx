@@ -78,6 +78,13 @@ const AdminSettings = () => {
     }
   };
 
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
   const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({
       ...prev,

@@ -13,8 +13,10 @@ import CreateEvent from "./pages/CreateEvent";
 import CrossedPaths from "./pages/CrossedPaths";
 import Feedback from "./pages/Feedback";
 import Profile from "./pages/Profile";
-import Subscription from "./pages/Subscription";
+import Subscriptions from "./pages/Subscriptions";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminSubscriptionPlans from "./pages/admin/AdminSubscriptionPlans";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 import AdminEditEvent from "./pages/admin/AdminEditEvent";
@@ -138,10 +140,10 @@ const App = () => (
                   <Profile />
                 </ProtectedRoute>
               } />
-              <Route path="/subscription" element={
+              <Route path="/subscriptions" element={
                 <ProtectedRoute>
                   <Navigation />
-                  <Subscription />
+                  <Subscriptions />
                 </ProtectedRoute>
               } />
               <Route path="/user/dashboard" element={
@@ -252,6 +254,20 @@ const App = () => (
                 <ProtectedAdminRoute requireSuperAdmin={true}>
                   <AdminLayout>
                     <AdminSettings />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/subscription-plans" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <AdminSubscriptionPlans />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/subscriptions" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <AdminSubscriptions />
                   </AdminLayout>
                 </ProtectedAdminRoute>
               } />

@@ -51,10 +51,8 @@ const Navigation = () => {
       { icon: MapPin, label: 'My Visits', path: '/my-visits' },
     ];
 
-    // Only show subscription for admin and superadmin
-    if (profile?.role === 'admin' || profile?.role === 'superadmin') {
-      baseItems.push({ icon: CreditCard, label: 'Subscription', path: '/subscription' });
-    }
+    // Add subscriptions for all users
+    baseItems.push({ icon: CreditCard, label: 'Subscriptions', path: '/subscriptions' });
 
     return baseItems;
   };

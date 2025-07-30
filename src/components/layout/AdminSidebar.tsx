@@ -51,6 +51,12 @@ const AdminSidebar = () => {
       { title: "Reports", url: "/admin/reports", icon: FileText },
     ];
 
+    // Add subscription items for all admins
+    baseItems.push(
+      { title: "Subscription Plans", url: "/admin/subscription-plans", icon: Crown },
+      { title: "User Subscriptions", url: "/admin/subscriptions", icon: Users }
+    );
+
     // Super Admin gets additional items
     if (profile?.role === 'superadmin') {
       baseItems.push(
