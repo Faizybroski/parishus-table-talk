@@ -53,6 +53,7 @@ const AdminSidebar = () => {
 
     // Add subscription items for all admins
     baseItems.push(
+      { title: "Stripe Settings", url: "/admin/stripe-settings", icon: Settings },
       { title: "Subscription Plans", url: "/admin/subscription-plans", icon: Crown },
       { title: "User Subscriptions", url: "/admin/subscriptions", icon: Users }
     );

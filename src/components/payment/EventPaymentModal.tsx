@@ -1,22 +1,24 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Calendar, MapPin, Users } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { CalendarDays, MapPin, Users, DollarSign } from 'lucide-react';
 
 interface Event {
   id: string;
   name: string;
   date_time: string;
   location_name: string;
+  location_address: string;
   event_fee: number;
   max_attendees: number;
+  creator_id: string;
 }
 
 interface BillingInfo {
@@ -33,21 +35,23 @@ interface BillingInfo {
 interface EventPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  event: Event | null;
+  event: Event;
   onPaymentSuccess: () => void;
 }
 
-export const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
+const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
   open,
   onOpenChange,
   event,
   onPaymentSuccess
 }) => {
+  const { user, session } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState<BillingInfo>({
     firstName: '',
     lastName: '',
-    email: '',
+    email: user?.email || '',
     address: '',
     city: '',
     state: '',
@@ -55,34 +59,23 @@ export const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
     country: 'US'
   });
 
-  const { user } = useAuth();
-
   const handleInputChange = (field: keyof BillingInfo, value: string) => {
-    setBillingInfo(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setBillingInfo(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePayment = async () => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to RSVP to this event",
+        title: "Error",
+        description: "You must be logged in to make a payment",
         variant: "destructive"
       });
       return;
     }
 
-    if (!event) return;
-
-    // Validate required fields
-    const requiredFields = ['firstName', 'lastName', 'email'];
-    const missingFields = requiredFields.filter(field => !billingInfo[field as keyof BillingInfo]);
-    
-    if (missingFields.length > 0) {
+    if (!billingInfo.firstName || !billingInfo.lastName || !billingInfo.email) {
       toast({
-        title: "Missing information",
+        title: "Error",
         description: "Please fill in all required fields",
         variant: "destructive"
       });
@@ -92,32 +85,29 @@ export const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
     setLoading(true);
 
     try {
+      // Create payment intent via Supabase function
       const { data, error } = await supabase.functions.invoke('create-event-payment', {
         body: {
           eventId: event.id,
           billingInfo
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
         }
       });
 
       if (error) throw error;
 
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
-
-      // Close modal and show success message
-      onOpenChange(false);
-      toast({
-        title: "Redirecting to payment",
-        description: "Complete your payment to confirm your RSVP",
-      });
-
-      // Call success callback
-      onPaymentSuccess();
-
+      if (data.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+        onPaymentSuccess();
+      }
     } catch (error: any) {
+      console.error('Payment error:', error);
       toast({
-        title: "Payment failed",
-        description: error.message || "Failed to initiate payment",
+        title: "Payment Failed",
+        description: error.message || "An error occurred during payment",
         variant: "destructive"
       });
     } finally {
@@ -125,155 +115,136 @@ export const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
     }
   };
 
-  if (!event) return null;
-
-  const eventDate = new Date(event.date_time);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <CreditCard className="h-5 w-5" />
-            <span>Complete Payment</span>
-          </DialogTitle>
+          <DialogTitle>Complete Payment for {event.name}</DialogTitle>
+          <DialogDescription>
+            Secure payment processing via Stripe
+          </DialogDescription>
         </DialogHeader>
-
+        
         <div className="space-y-6">
           {/* Event Summary */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg">{event.name}</h3>
-                
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>{eventDate.toLocaleDateString()} at {eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{event.location_name}</span>
-                </div>
-
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>Max {event.max_attendees} attendees</span>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Total Amount:</span>
-                  <div className="flex items-center space-x-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-lg font-bold">{event.event_fee.toFixed(2)}</span>
-                  </div>
-                </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5" />
+                Event Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <h3 className="font-semibold">{event.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(event.date_time).toLocaleString()}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4" />
+                <span>{event.location_name}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="h-4 w-4" />
+                <span>Max {event.max_attendees} attendees</span>
+              </div>
+              
+              <div className="flex items-center gap-2 font-semibold">
+                <DollarSign className="h-4 w-4" />
+                <span>${event.event_fee}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Billing Information */}
-          <div className="space-y-4">
-            <h3 className="font-semibold">Billing Information</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing Information</CardTitle>
+              <CardDescription>
+                Please provide your billing details for the event payment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    value={billingInfo.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    value={billingInfo.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email *</Label>
                 <Input
-                  id="firstName"
-                  value={billingInfo.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  id="email"
+                  type="email"
+                  value={billingInfo.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+              
+              <div>
+                <Label htmlFor="address">Address</Label>
                 <Input
-                  id="lastName"
-                  value={billingInfo.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  required
+                  id="address"
+                  value={billingInfo.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={billingInfo.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={billingInfo.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={billingInfo.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                />
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={billingInfo.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={billingInfo.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Input
+                    id="zipCode"
+                    value={billingInfo.zipCode}
+                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={billingInfo.state}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">ZIP Code</Label>
-                <Input
-                  id="zipCode"
-                  value={billingInfo.zipCode}
-                  onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={billingInfo.country}
-                  onChange={(e) => handleInputChange('country', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-              disabled={loading}
-            >
+          <div className="flex gap-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              onClick={handlePayment}
-              disabled={loading}
-              className="flex-1"
-            >
-              {loading ? 'Processing...' : `Pay $${event.event_fee.toFixed(2)} & RSVP`}
+            <Button onClick={handlePayment} disabled={loading} className="flex-1">
+              {loading ? 'Processing...' : `Pay $${event.event_fee}`}
             </Button>
           </div>
         </div>
@@ -281,3 +252,5 @@ export const EventPaymentModal: React.FC<EventPaymentModalProps> = ({
     </Dialog>
   );
 };
+
+export default EventPaymentModal;

@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Subscriptions from "./pages/Subscriptions";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminSubscriptionPlans from "./pages/admin/AdminSubscriptionPlans";
+import AdminStripeSettings from "./pages/admin/AdminStripeSettings";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
@@ -254,6 +255,13 @@ const App = () => (
                 <ProtectedAdminRoute requireSuperAdmin={true}>
                   <AdminLayout>
                     <AdminSettings />
+                  </AdminLayout>
+                </ProtectedAdminRoute>
+              } />
+              <Route path="/admin/stripe-settings" element={
+                <ProtectedAdminRoute>
+                  <AdminLayout>
+                    <AdminStripeSettings />
                   </AdminLayout>
                 </ProtectedAdminRoute>
               } />
