@@ -238,10 +238,12 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style: Database["public"]["Enums"]["dining_style"] | null
+          event_fee: string | null
           guest_invitation_type: string | null
           guest_user_ids: string[] | null
           id: string
           is_mystery_dinner: boolean | null
+          is_paid: boolean | null
           location_address: string | null
           location_lat: number | null
           location_lng: number | null
@@ -266,10 +268,12 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
+          event_fee?: string | null
           guest_invitation_type?: string | null
           guest_user_ids?: string[] | null
           id?: string
           is_mystery_dinner?: boolean | null
+          is_paid?: boolean | null
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
@@ -294,10 +298,12 @@ export type Database = {
             | Database["public"]["Enums"]["dietary_preference"]
             | null
           dining_style?: Database["public"]["Enums"]["dining_style"] | null
+          event_fee?: string | null
           guest_invitation_type?: string | null
           guest_user_ids?: string[] | null
           id?: string
           is_mystery_dinner?: boolean | null
+          is_paid?: boolean | null
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
@@ -418,7 +424,7 @@ export type Database = {
       }
       payments: {
         Row: {
-          amount: number | null
+          amount: string | null
           created_at: string
           currency: string | null
           id: string
@@ -432,7 +438,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          amount?: number | null
+          amount?: string | null
           created_at?: string
           currency?: string | null
           id?: string
@@ -446,7 +452,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          amount?: number | null
+          amount?: string | null
           created_at?: string
           currency?: string | null
           id?: string
@@ -463,6 +469,50 @@ export type Database = {
           {
             foreignKeyName: "payments_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          creator_id: string | null
+          description: string | null
+          id: number
+          interval: string | null
+          name: string | null
+          price: number | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id?: string | null
+          description?: string | null
+          id?: number
+          interval?: string | null
+          name?: string | null
+          price?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string | null
+          description?: string | null
+          id?: number
+          interval?: string | null
+          name?: string | null
+          price?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plans_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -672,8 +722,11 @@ export type Database = {
           event_id: string
           id: string
           is_running_late: boolean | null
+          payment_status: string | null
+          refund_status: string | null
           response_status: Database["public"]["Enums"]["rsvp_status"] | null
           status: string | null
+          stripe_payment_id: string | null
           user_id: string
         }
         Insert: {
@@ -681,8 +734,11 @@ export type Database = {
           event_id: string
           id?: string
           is_running_late?: boolean | null
+          payment_status?: string | null
+          refund_status?: string | null
           response_status?: Database["public"]["Enums"]["rsvp_status"] | null
           status?: string | null
+          stripe_payment_id?: string | null
           user_id: string
         }
         Update: {
@@ -690,8 +746,11 @@ export type Database = {
           event_id?: string
           id?: string
           is_running_late?: boolean | null
+          payment_status?: string | null
+          refund_status?: string | null
           response_status?: Database["public"]["Enums"]["rsvp_status"] | null
           status?: string | null
+          stripe_payment_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -708,6 +767,84 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_settings: {
+        Row: {
+          created_at: string
+          id: string
+          stripe_public_key: string | null
+          stripe_secret_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stripe_public_key?: string | null
+          stripe_secret_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stripe_public_key?: string | null
+          stripe_secret_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: number
+          plan_id: number | null
+          start_date: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: number
+          plan_id?: number | null
+          start_date?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: number
+          plan_id?: number | null
+          start_date?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
