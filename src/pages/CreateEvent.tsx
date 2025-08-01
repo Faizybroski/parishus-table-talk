@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useRestaurants, Restaurant } from '@/hooks/useRestaurants';
@@ -16,9 +16,18 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { RestaurantSearchDropdown } from '@/components/restaurants/RestaurantSearchDropdown';
 
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+    initGoogleMaps: () => void;
+  }
+}
+
 const CreateEvent = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,6 +35,8 @@ const CreateEvent = () => {
     time: '',
     location_name: '',
     location_address: '',
+    latitude: 0,
+    longitude: 0,
     restaurant_id: '',
     max_attendees: 10,
     dining_style: '',
@@ -40,12 +51,63 @@ const CreateEvent = () => {
     event_fee: 0
   });
   const [newTag, setNewTag] = useState('');
+  const venueInputRef = useRef<HTMLInputElement>(null);
   
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { restaurants, loading: restaurantsLoading } = useRestaurants();
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadGoogleMaps = () => {
+      if (window.google && window.google.maps) {
+        setGoogleMapsLoaded(true);
+        return;
+      }
+
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBpKV3z4VdC8GgE-0aUnD0CsN2p8b8yfMc&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      
+      window.initGoogleMaps = () => {
+        setGoogleMapsLoaded(true);
+      };
+      
+      script.onload = window.initGoogleMaps;
+      document.head.appendChild(script);
+    };
+
+    loadGoogleMaps();
+  }, []);
+
+  useEffect(() => {
+    if (!googleMapsLoaded || !venueInputRef.current || !window.google) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(venueInputRef.current, {
+      types: ['establishment'],
+      fields: ['name', 'geometry', 'formatted_address']
+    });
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      
+      if (!place.geometry) return;
+
+      setFormData(prev => ({
+        ...prev,
+        location_name: place.name || '',
+        location_address: place.formatted_address || '',
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng()
+      }));
+    });
+  }, [googleMapsLoaded]);
 
 
   const handleInputChange = (field: string, value: any) => {
@@ -331,14 +393,18 @@ const CreateEvent = () => {
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
+                      ref={venueInputRef}
                       id="location_name"
-                      placeholder="e.g., The Garden Cafe"
+                      placeholder="Search for venue..."
                       value={formData.location_name}
                       onChange={(e) => handleInputChange('location_name', e.target.value)}
                       className="pl-10"
                       required
                     />
                   </div>
+                  {!googleMapsLoaded && (
+                    <p className="text-sm text-muted-foreground">Loading Google Places...</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
